@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LeaderboardData, LeaderboardEntry } from '../types/game'
 
-export function useLeaderboard(gameSlug: string, deviceId: string) {
+export function useLeaderboard(
+  gameSlug: string,
+  deviceId: string,
+  getClerkToken?: () => Promise<string | null>,
+) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [playerEntry, setPlayerEntry] = useState<LeaderboardEntry | null>(null)
   const [rivalEntry, setRivalEntry] = useState<LeaderboardEntry | null>(null)
   const [totalPlayers, setTotalPlayers] = useState(0)
+  const [myPlayerId, setMyPlayerId] = useState(deviceId)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,6 +26,7 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
       setPlayerEntry(data.playerEntry)
       setRivalEntry(data.rivalEntry)
       setTotalPlayers(data.totalPlayers)
+      setMyPlayerId(data.myPlayerId ?? deviceId)
     } catch {
       setError('Ranks are offline. Your best is still saved here.')
     } finally {
@@ -32,15 +38,29 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
     fetchLeaderboard()
   }, [fetchLeaderboard])
 
+  // Re-fetch after a guest→auth merge so the leaderboard shows the real handle
+  useEffect(() => {
+    const handler = () => void fetchLeaderboard()
+    window.addEventListener('flickcade:merged', handler)
+    return () => window.removeEventListener('flickcade:merged', handler)
+  }, [fetchLeaderboard])
+
   const submitScore = useCallback(async (score: number, runToken: string) => {
     if (!runToken) {
       setError('Score saved locally. World ranks are offline.')
       return false
     }
     try {
+      // Attach Clerk session token when available so the server links the score to the account
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      try {
+        const token = await getClerkToken?.()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+      } catch { /* non-fatal */ }
+
       const response = await window.fetch('/api/scores', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ gameSlug, score, deviceId, runToken }),
       })
       if (!response.ok) throw new Error('Score rejected')
@@ -50,13 +70,14 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
       setError('Score saved locally. World ranks are offline.')
       return false
     }
-  }, [deviceId, fetchLeaderboard, gameSlug])
+  }, [deviceId, fetchLeaderboard, gameSlug, getClerkToken])
 
   return {
     entries,
     playerEntry,
     rivalEntry,
     totalPlayers,
+    myPlayerId,
     loading,
     error,
     submitScore,

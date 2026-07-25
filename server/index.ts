@@ -3,13 +3,12 @@ import cors from 'cors'
 import path from 'path'
 import scoresRouter from './routes/scores'
 import runsRouter from './routes/runs'
+import authRouter from './routes/auth'
+import { optionalClerkAuth } from './clerkAuth'
 import { getScoreService, getScoreStorageMode } from './services/scoreService'
 
 const app = express()
 
-// In production the Express server owns port 5000 and serves both the API
-// and the pre-built Vite frontend.  In dev, Vite runs on 5000 and proxies
-// /api to this server on 3001, so we default to 3001 there.
 const isProduction = process.env.NODE_ENV === 'production'
 const PORT = parseInt(process.env.PORT ?? (isProduction ? '5000' : '3001'), 10)
 
@@ -22,12 +21,16 @@ app.use((_req, res, next) => {
   next()
 })
 
-// API routes
-app.use('/api/scores', scoresRouter)
-app.use('/api/leaderboard', scoresRouter)
-app.use('/api/runs', runsRouter)
+// Decode Clerk Bearer token on every request — never blocks unauthenticated traffic
+app.use(optionalClerkAuth)
 
-// Health check (used by Replit deployment health checks)
+// API routes
+app.use('/api/scores',     scoresRouter)
+app.use('/api/leaderboard', scoresRouter)
+app.use('/api/runs',       runsRouter)
+app.use('/api/auth',       authRouter)
+
+// Health check
 app.get('/api/health', async (_req, res) => {
   await getScoreService()
   const storage = getScoreStorageMode()
@@ -35,12 +38,12 @@ app.get('/api/health', async (_req, res) => {
     ok: true,
     storage,
     persistent: storage === 'postgres',
-    authReady: Boolean(process.env.CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY),
+    authReady: Boolean(process.env.CLERK_SECRET_KEY),
     ts: Date.now(),
   })
 })
 
-// Serve the pre-built Vite frontend in production
+// Production: Express serves the pre-built Vite bundle on port 5000
 if (isProduction) {
   const clientPath = path.join(__dirname, '../client')
   app.use(express.static(clientPath, {
@@ -50,12 +53,11 @@ if (isProduction) {
       if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache')
     },
   }))
-  // SPA fallback — send index.html for any non-API route
   app.get('*', (_req, res) => res.sendFile(path.join(clientPath, 'index.html')))
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[server] ${isProduction ? 'production' : 'development'} — listening on http://0.0.0.0:${PORT}`)
+  console.log(`[server] ${isProduction ? 'production' : 'development'} — http://0.0.0.0:${PORT}`)
 })
 
 export default app

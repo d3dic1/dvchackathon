@@ -24,7 +24,10 @@ export interface ScoreEntry {
 export interface LeaderboardEntry {
   rank: number;
   score: number;
+  /** COALESCE(user_id, device_id) — effective player identity returned by the server */
   deviceId: string;
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export interface LeaderboardData {
@@ -32,4 +35,6 @@ export interface LeaderboardData {
   playerEntry: LeaderboardEntry | null;
   rivalEntry: LeaderboardEntry | null;
   totalPlayers: number;
+  /** Server-resolved effective identity for the requesting device */
+  myPlayerId: string;
 }

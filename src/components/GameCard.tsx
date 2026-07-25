@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { GameMeta } from '../types/game'
 import { usePersonalBest } from '../hooks/usePersonalBest'
 import { useLeaderboard } from '../hooks/useLeaderboard'
+import { useFlickcadeAuth, CLERK_ENABLED } from '../hooks/useFlickcadeAuth'
 import { getDeviceId } from '../utils/deviceId'
 import { useRunSession } from '../hooks/useRunSession'
 import ScoreHUD from './ScoreHUD'
@@ -9,6 +10,7 @@ import GameInfo from './GameInfo'
 import GameOver from './GameOver'
 import SocialRail from './SocialRail'
 import LeaderboardPanel from './LeaderboardPanel'
+import ClaimRankSheet from './ClaimRankSheet'
 
 interface Props {
   game: GameMeta
@@ -25,18 +27,19 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const [finalScore, setFinalScore] = useState(0)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [liked, setLiked] = useState(false)
-  const [key, setKey] = useState(0) // reset key for game component
+  const [key, setKey] = useState(0)
   const [milestone, setMilestone] = useState('')
+  const [claimDismissed, setClaimDismissed] = useState(false)
   const milestoneLevel = useRef(0)
   const milestoneTimer = useRef<ReturnType<typeof setTimeout>>()
   const deviceId = useRef(getDeviceId()).current
 
   const { personalBest, updatePersonalBest } = usePersonalBest(game.slug)
-  const { entries, playerEntry, rivalEntry, totalPlayers, loading, error, submitScore, refresh } =
-    useLeaderboard(game.slug, deviceId)
+  const { isSignedIn, getToken } = useFlickcadeAuth()
+  const { entries, playerEntry, rivalEntry, totalPlayers, myPlayerId, loading, error, submitScore, refresh } =
+    useLeaderboard(game.slug, deviceId, getToken)
   const { startRun, getRunToken } = useRunSession(game.slug, deviceId, isActive)
 
-  // When card becomes active, reset game state
   useEffect(() => {
     if (isActive) {
       setScore(0)
@@ -49,13 +52,15 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
 
   useEffect(() => () => clearTimeout(milestoneTimer.current), [])
 
+  // Reset claim sheet on each new run so it can reappear after a great score
+  useEffect(() => {
+    if (!gameOver) setClaimDismissed(false)
+  }, [gameOver])
+
   const handleScore = useCallback((s: number) => {
     setScore(s)
     const thresholds: Record<string, number> = {
-      'orbit-lock': 50,
-      'lane-shift': 8,
-      'echo-grid': 100,
-      'gravity-flip': 8,
+      'orbit-lock': 50, 'lane-shift': 8, 'echo-grid': 100, 'gravity-flip': 8,
     }
     const level = Math.floor(s / thresholds[game.slug])
     if (level > milestoneLevel.current) {
@@ -94,12 +99,15 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     return params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
   })()
 
+  // Show ClaimRankSheet when: Clerk configured, game over, positive score, not signed in, not dismissed
+  const showClaimSheet = CLERK_ENABLED && gameOver && finalScore > 0 && !isSignedIn && !claimDismissed && !showLeaderboard
+
   return (
     <article className={`game-card ${milestone ? 'is-impact' : ''}`} data-game={game.slug}>
       <div className="game-card__texture" />
       <div className="game-card__number" aria-hidden="true">{String(position).padStart(2, '0')}</div>
       <div className="game-card__era" aria-hidden="true">LIVING ROOM CLASSIC · HARD MODE</div>
-      {/* Game canvas/component */}
+
       <GameComponent
         key={key}
         isActive={isActive && !gameOver}
@@ -109,7 +117,6 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         reducedMotion={reducedMotion}
       />
 
-      {/* Score HUD */}
       {!showLeaderboard && (
         <ScoreHUD
           score={gameOver ? finalScore : score}
@@ -119,16 +126,10 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         />
       )}
 
-      {/* Game info bottom-left */}
       {!gameOver && !showLeaderboard && (
-        <GameInfo
-          title={game.title}
-          instruction={game.instruction}
-          accentColor={game.accentColor}
-        />
+        <GameInfo title={game.title} instruction={game.instruction} accentColor={game.accentColor} />
       )}
 
-      {/* Social rail */}
       {!showLeaderboard && (
         <SocialRail
           soundEnabled={soundEnabled}
@@ -148,7 +149,6 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
       )}
       {milestone && !gameOver && <div className="milestone-burst">{milestone}</div>}
 
-      {/* Game over overlay */}
       {gameOver && !showLeaderboard && (
         <GameOver
           score={finalScore}
@@ -162,7 +162,17 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         />
       )}
 
-      {/* Leaderboard */}
+      {/* Claim-rank sheet slides up over the game-over card for non-signed-in players */}
+      {showClaimSheet && (
+        <ClaimRankSheet
+          score={finalScore}
+          rank={playerEntry?.rank}
+          totalPlayers={totalPlayers}
+          accentColor={game.accentColor}
+          onDismiss={() => setClaimDismissed(true)}
+        />
+      )}
+
       {showLeaderboard && (
         <LeaderboardPanel
           entries={entries}
@@ -170,7 +180,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           onClose={() => setShowLeaderboard(false)}
           accentColor={game.accentColor}
           gameTitle={game.title}
-          deviceId={deviceId}
+          myPlayerId={myPlayerId}
           playerEntry={playerEntry}
           totalPlayers={totalPlayers}
           error={error}

@@ -6,16 +6,17 @@ interface Props {
   onClose: () => void
   accentColor: string
   gameTitle: string
-  deviceId: string
+  /** Effective player identity resolved by the server: user_id (auth) or device_id (guest) */
+  myPlayerId: string
   playerEntry: LeaderboardEntry | null
   totalPlayers: number
   error: string | null
 }
 
 export default function LeaderboardPanel({
-  entries, loading, onClose, accentColor, gameTitle, deviceId, playerEntry, totalPlayers, error,
+  entries, loading, onClose, accentColor, gameTitle, myPlayerId, playerEntry, totalPlayers, error,
 }: Props) {
-  const playerIsVisible = entries.some(entry => entry.deviceId === deviceId)
+  const playerIsVisible = entries.some(entry => entry.deviceId === myPlayerId)
 
   return (
     <div className="leaderboard" onClick={onClose}>
@@ -44,28 +45,46 @@ export default function LeaderboardPanel({
         ) : (
           <div className="leaderboard__list">
             {entries.map(entry => {
-              const isMe = entry.deviceId === deviceId
+              const isMe = entry.deviceId === myPlayerId
               return (
-                <div className={`leaderboard__row ${isMe ? 'is-me' : ''}`} key={`${entry.deviceId}-${entry.rank}`}>
-                  <span className="leaderboard__rank">{String(entry.rank).padStart(2, '0')}</span>
-                  <span className="leaderboard__player">{isMe ? 'YOU' : `PLAYER ${entry.deviceId.slice(-4).toUpperCase()}`}</span>
-                  <strong>{entry.score}</strong>
-                </div>
+                <LeaderboardRow key={`${entry.deviceId}-${entry.rank}`} entry={entry} isMe={isMe} />
               )
             })}
             {playerEntry && !playerIsVisible && (
               <>
                 <div className="leaderboard__ellipsis">· · ·</div>
-                <div className="leaderboard__row is-me">
-                  <span className="leaderboard__rank">{String(playerEntry.rank).padStart(2, '0')}</span>
-                  <span className="leaderboard__player">YOU</span>
-                  <strong>{playerEntry.score}</strong>
-                </div>
+                <LeaderboardRow entry={playerEntry} isMe />
               </>
             )}
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+function LeaderboardRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolean }) {
+  const handle = isMe
+    ? 'YOU'
+    : entry.displayName || `PLAYER ${entry.deviceId.slice(-4).toUpperCase()}`
+
+  return (
+    <div className={`leaderboard__row ${isMe ? 'is-me' : ''}`}>
+      <span className="leaderboard__rank">{String(entry.rank).padStart(2, '0')}</span>
+      <span className="leaderboard__player">
+        {entry.avatarUrl && !isMe && (
+          <img
+            className="leaderboard__avatar"
+            src={entry.avatarUrl}
+            alt=""
+            width="22"
+            height="22"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        {handle}
+      </span>
+      <strong>{entry.score}</strong>
     </div>
   )
 }
