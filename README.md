@@ -6,10 +6,10 @@
 
 | Game | Mechanic |
 | --- | --- |
-| Orbit Lock | Time the rotating marker, stack accuracy bonuses, and keep the streak alive. |
-| Lane Shift | Switch lanes to avoid an accelerating sequence of barriers. |
-| Echo Grid | Memorize an increasingly fast four-pad signal. |
-| Gravity Flip | Flip between floor and ceiling to survive alternating hazards. |
+| Power Swing | Hit a shrinking sweet spot as the sports timing dial accelerates. |
+| Slalom Panic | Carve between lanes on an increasingly ruthless toy-like ski slope. |
+| Party Pattern | Repeat a fast four-button sequence inspired by living-room party games. |
+| Skybound | Swap between two sides of a cheerful obstacle course before hazards connect. |
 
 ## Experience
 

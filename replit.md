@@ -32,10 +32,10 @@ npm start       # → Express on port 5000 (serves API + static files)
 
 | Slug | Title | Mechanic |
 |------|-------|----------|
-| `orbit-lock` | Orbit Lock | Tap the rotating marker into the lime target zone |
-| `lane-shift` | Lane Shift | Switch lanes to dodge barriers in a perspective runner |
-| `echo-grid` | Echo Grid | Memorise and repeat a growing pad sequence |
-| `gravity-flip` | Gravity Flip | Flip between floor and ceiling to dodge obstacles |
+| `orbit-lock` | Power Swing | Hit a shrinking sweet spot as the sports dial accelerates |
+| `lane-shift` | Slalom Panic | Carve between lanes on a ruthless toy-like ski slope |
+| `echo-grid` | Party Pattern | Repeat a fast four-button living-room sequence |
+| `gravity-flip` | Skybound | Swap sides to survive a cheerful obstacle course |
 
 ## API
 

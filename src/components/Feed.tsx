@@ -29,7 +29,12 @@ const QUEUE_SIZE = 24
 export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
-  const [queue] = useState(() => buildQueue(games, QUEUE_SIZE))
+  const [queue, setQueue] = useState(() => buildQueue(games, QUEUE_SIZE))
+
+  useEffect(() => {
+    if (activeIndex < queue.length - 6) return
+    setQueue(current => [...current, ...buildQueue(games, 12)])
+  }, [activeIndex, games, queue.length])
 
   useEffect(() => {
     const container = containerRef.current

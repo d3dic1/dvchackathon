@@ -73,6 +73,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     <article className="game-card" data-game={game.slug}>
       <div className="game-card__texture" />
       <div className="game-card__number" aria-hidden="true">{String(position).padStart(2, '0')}</div>
+      <div className="game-card__era" aria-hidden="true">LIVING ROOM CLASSIC · HARD MODE</div>
       {/* Game canvas/component */}
       <GameComponent
         key={key}

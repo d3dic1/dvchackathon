@@ -3,7 +3,7 @@ import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
 import { playSound } from '../utils/audio'
 
-const PAD_COLORS = ['#f04a24', '#123fc5', '#d7ff2f', '#121212']
+const PAD_COLORS = ['#ff5b55', '#46a3ef', '#ffd83d', '#79d36a']
 const PAD_LABELS = ['A', 'B', 'C', 'D']
 type Phase = 'showing' | 'input' | 'correct' | 'fail'
 
@@ -26,7 +26,7 @@ export default function EchoGrid({ isActive, onScore, onGameOver, reducedMotion,
 
   const showSequence = useCallback((runId: number) => {
     let index = 0
-    const pace = Math.max(220, 520 - sequenceRef.current.length * 22)
+    const pace = Math.max(155, 410 - sequenceRef.current.length * 25)
     phaseRef.current = 'showing'
     setPhase('showing')
     setInputCount(0)
@@ -94,18 +94,21 @@ export default function EchoGrid({ isActive, onScore, onGameOver, reducedMotion,
     runRef.current += 1
     clearTimeout(timerRef.current)
     if (isActive) {
-      sequenceRef.current = []
+      sequenceRef.current = [
+        Math.floor(Math.random() * 4),
+        Math.floor(Math.random() * 4),
+      ]
       inputRef.current = []
       scoreRef.current = 0
       setScore(0)
       setInputCount(0)
-      addRound(runRef.current)
+      showSequence(runRef.current)
     }
     return () => {
       runRef.current += 1
       clearTimeout(timerRef.current)
     }
-  }, [addRound, isActive])
+  }, [isActive, showSequence])
 
   return (
     <div className="echo-game">

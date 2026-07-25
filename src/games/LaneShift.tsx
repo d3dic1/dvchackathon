@@ -5,11 +5,11 @@ import { playSound } from '../utils/audio'
 
 interface Barrier { y: number; lane: 0 | 1; passed: boolean }
 
-const ORANGE = '#f04a24'
-const BLUE = '#123fc5'
-const CREAM = '#f5e7c6'
-const LIME = '#d7ff2f'
-const INK = '#121212'
+const ORANGE = '#ff5b35'
+const BLUE = '#2a78d1'
+const CREAM = '#fffdf7'
+const LIME = '#8cff69'
+const INK = '#29445e'
 
 export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion, soundEnabled }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -18,9 +18,9 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     visualLane: 0,
     barriers: [] as Barrier[],
     score: 0,
-    speed: 250,
+    speed: 290,
     spawnTimer: 0,
-    spawnInterval: 1.28,
+    spawnInterval: 1.08,
     running: false,
     rafId: 0,
     lastTime: 0,
@@ -37,20 +37,26 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const state = stateRef.current
-    ctx.fillStyle = ORANGE
+    const sky = ctx.createLinearGradient(0, 0, 0, height)
+    sky.addColorStop(0, '#76cdfc')
+    sky.addColorStop(.52, '#e6f7ff')
+    sky.addColorStop(.53, '#f5fbff')
+    sky.addColorStop(1, '#c8e9f6')
+    ctx.fillStyle = sky
     ctx.fillRect(0, 0, width, height)
 
-    ctx.fillStyle = CREAM
-    for (let x = -height; x < width + height; x += 70) {
-      ctx.save()
-      ctx.translate(x, 0)
-      ctx.rotate(-.22)
-      ctx.fillRect(0, 0, 24, height * .23)
-      ctx.restore()
-    }
+    ctx.fillStyle = '#b5d8eb'
+    ctx.beginPath()
+    ctx.moveTo(0, height * .3)
+    ctx.lineTo(width * .2, height * .08)
+    ctx.lineTo(width * .38, height * .3)
+    ctx.lineTo(width * .65, height * .03)
+    ctx.lineTo(width, height * .31)
+    ctx.closePath()
+    ctx.fill()
 
     const horizon = height * .2
-    ctx.fillStyle = INK
+    ctx.fillStyle = CREAM
     ctx.beginPath()
     ctx.moveTo(width * .41, horizon)
     ctx.lineTo(width * .05, height)
@@ -59,7 +65,7 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     ctx.closePath()
     ctx.fill()
 
-    ctx.strokeStyle = CREAM
+    ctx.strokeStyle = BLUE
     ctx.lineWidth = 5
     ctx.setLineDash([26, 22])
     ctx.beginPath()
@@ -68,7 +74,7 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     ctx.stroke()
     ctx.setLineDash([])
 
-    ctx.strokeStyle = LIME
+    ctx.strokeStyle = ORANGE
     ctx.lineWidth = 8
     ctx.beginPath()
     ctx.moveTo(width * .41, horizon)
@@ -83,12 +89,12 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
       const x = road.left + barrier.lane * laneWidth + laneWidth * .12
       const w = laneWidth * .76
       const h = 22 + road.progress * 46
-      ctx.fillStyle = BLUE
-      ctx.strokeStyle = CREAM
+      ctx.fillStyle = barrier.lane === 0 ? ORANGE : BLUE
+      ctx.strokeStyle = INK
       ctx.lineWidth = 4
       ctx.fillRect(x, barrier.y - h, w, h)
       ctx.strokeRect(x, barrier.y - h, w, h)
-      ctx.strokeStyle = ORANGE
+      ctx.strokeStyle = CREAM
       ctx.lineWidth = 5
       for (let stripe = x + 8; stripe < x + w; stripe += 24) {
         ctx.beginPath()
@@ -119,10 +125,10 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     ctx.stroke()
     ctx.restore()
 
-    ctx.fillStyle = CREAM
+    ctx.fillStyle = INK
     ctx.font = `900 ${Math.max(15, height * .02)}px "Archivo Black", sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(`SPEED ${Math.round(state.speed)}`, width / 2, horizon - 20)
+    ctx.fillText(`SLOPE ${Math.round(state.speed)}`, width / 2, horizon - 20)
 
     if (state.flash > 0) {
       ctx.globalAlpha = state.flash * .55
@@ -158,11 +164,11 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     if (state.spawnTimer >= state.spawnInterval) {
       state.spawnTimer = 0
       state.barriers.push({ y: height * .18, lane: Math.random() > .5 ? 1 : 0, passed: false })
-      state.spawnInterval = Math.max(.62, 1.28 - state.score * .006)
+      state.spawnInterval = Math.max(.52, 1.08 - state.score * .007)
     }
 
     state.distance += speed * dt
-    state.speed = Math.min(540, 250 + state.score * 2.3 + state.distance / 110)
+    state.speed = Math.min(620, 290 + state.score * 2.8 + state.distance / 95)
     state.flash = Math.max(0, state.flash - dt * 5)
 
     const hit = state.barriers.some(barrier => {
@@ -209,8 +215,8 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     const state = stateRef.current
     if (isActive) {
       Object.assign(state, {
-        lane: 0, visualLane: 0, barriers: [], score: 0, speed: 250, spawnTimer: 0,
-        spawnInterval: 1.28, running: true, lastTime: 0, distance: 0, flash: 0,
+        lane: 0, visualLane: 0, barriers: [], score: 0, speed: 290, spawnTimer: 0,
+        spawnInterval: 1.08, running: true, lastTime: 0, distance: 0, flash: 0,
       })
       state.rafId = requestAnimationFrame(loop)
     } else {
@@ -229,7 +235,7 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
       className="game-canvas"
       role="button"
       tabIndex={0}
-      aria-label="Lane Shift. Tap to switch lanes and avoid barriers."
+      aria-label="Slalom Panic. Tap to carve between lanes and avoid gates."
       onPointerUp={tap}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {

@@ -5,11 +5,11 @@ import { playSound } from '../utils/audio'
 
 interface Obstacle { x: number; side: 'floor' | 'ceiling'; passed: boolean }
 
-const BLUE = '#123fc5'
-const CREAM = '#f5e7c6'
-const ORANGE = '#f04a24'
-const LIME = '#d7ff2f'
-const INK = '#121212'
+const BLUE = '#65bdf1'
+const CREAM = '#fffdf7'
+const ORANGE = '#ff6f61'
+const LIME = '#8ee56b'
+const INK = '#29445e'
 
 export default function GravityFlip({ isActive, onScore, onGameOver, reducedMotion, soundEnabled }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -18,9 +18,9 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     playerY: -1,
     obstacles: [] as Obstacle[],
     score: 0,
-    speed: 230,
+    speed: 275,
     spawnTimer: 0,
-    spawnInterval: 1.35,
+    spawnInterval: 1.08,
     running: false,
     rafId: 0,
     lastTime: 0,
@@ -33,15 +33,27 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     const bottom = height * .82
     const playerX = width * .24
 
-    ctx.fillStyle = BLUE
+    const sky = ctx.createLinearGradient(0, 0, 0, height)
+    sky.addColorStop(0, '#85d5ff')
+    sky.addColorStop(.5, '#e7f8ff')
+    sky.addColorStop(1, '#87cef0')
+    ctx.fillStyle = sky
     ctx.fillRect(0, 0, width, height)
+
+    ctx.fillStyle = 'rgba(255,255,255,.8)'
+    for (let x = 40; x < width; x += 180) {
+      ctx.beginPath()
+      ctx.arc(x, height * .36, 34, Math.PI, 0)
+      ctx.arc(x + 36, height * .36, 49, Math.PI, 0)
+      ctx.fill()
+    }
 
     ctx.fillStyle = CREAM
     ctx.fillRect(0, 0, width, top)
     ctx.fillRect(0, bottom, width, height - bottom)
 
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 7
+    ctx.strokeStyle = '#74a9c6'
+    ctx.lineWidth = 5
     ctx.beginPath()
     ctx.moveTo(0, top)
     ctx.lineTo(width, top)
@@ -49,7 +61,7 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     ctx.lineTo(width, bottom)
     ctx.stroke()
 
-    ctx.fillStyle = ORANGE
+    ctx.fillStyle = '#d8edf5'
     for (let x = -30; x < width + 30; x += 48) {
       ctx.beginPath()
       ctx.moveTo(x, top)
@@ -66,12 +78,12 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     for (const obstacle of state.obstacles) {
       const obstacleHeight = (bottom - top) * .42
       const y = obstacle.side === 'floor' ? bottom - obstacleHeight : top
-      ctx.fillStyle = ORANGE
+      ctx.fillStyle = obstacle.side === 'floor' ? ORANGE : '#8e75df'
       ctx.strokeStyle = INK
       ctx.lineWidth = 5
       ctx.fillRect(obstacle.x - 24, y, 48, obstacleHeight)
       ctx.strokeRect(obstacle.x - 24, y, 48, obstacleHeight)
-      ctx.fillStyle = LIME
+      ctx.fillStyle = CREAM
       for (let stripe = y + 10; stripe < y + obstacleHeight; stripe += 25) {
         ctx.fillRect(obstacle.x - 18, stripe, 36, 8)
       }
@@ -98,7 +110,7 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     ctx.stroke()
     ctx.restore()
 
-    ctx.fillStyle = CREAM
+    ctx.fillStyle = INK
     ctx.textAlign = 'center'
     ctx.font = `500 ${Math.max(12, height * .017)}px "DM Mono", monospace`
     ctx.fillText(state.onFloor ? 'GRAVITY: DOWN ↓' : 'GRAVITY: UP ↑', width / 2, height / 2)
@@ -145,9 +157,9 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
       const lastSide = state.obstacles.at(-1)?.side
       const side = Math.random() < .62 && lastSide ? lastSide : (Math.random() > .5 ? 'floor' : 'ceiling')
       state.obstacles.push({ x: width + 40, side, passed: false })
-      state.spawnInterval = Math.max(.72, 1.35 - state.score * .004)
+      state.spawnInterval = Math.max(.58, 1.08 - state.score * .005)
     }
-    state.speed = Math.min(500, 230 + state.score * 1.9)
+    state.speed = Math.min(590, 275 + state.score * 2.25)
     state.flash = Math.max(0, state.flash - dt * 5)
 
     const collision = state.obstacles.some(obstacle => {
@@ -193,8 +205,8 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     const state = stateRef.current
     if (isActive) {
       Object.assign(state, {
-        onFloor: true, playerY: -1, obstacles: [], score: 0, speed: 230, spawnTimer: 0,
-        spawnInterval: 1.35, running: true, lastTime: 0, flash: 0,
+        onFloor: true, playerY: -1, obstacles: [], score: 0, speed: 275, spawnTimer: 0,
+        spawnInterval: 1.08, running: true, lastTime: 0, flash: 0,
       })
       state.rafId = requestAnimationFrame(loop)
     } else {
@@ -213,7 +225,7 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
       className="game-canvas"
       role="button"
       tabIndex={0}
-      aria-label="Gravity Flip. Tap to flip between the floor and ceiling."
+      aria-label="Skybound. Tap to swap between the floor and ceiling."
       onPointerUp={tap}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
