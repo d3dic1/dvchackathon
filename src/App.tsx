@@ -11,6 +11,7 @@ import RailBlaster from './games/RailBlaster'
 import TurboServe from './games/TurboServe'
 import ReelTrouble from './games/ReelTrouble'
 import PinDrop from './games/PinDrop'
+import RubbleRush from './games/RubbleRush'
 
 const GAMES: GameMeta[] = [
   {
@@ -82,6 +83,13 @@ const GAMES: GameMeta[] = [
     instruction: 'Tap to lock direction, then tap again for power.',
     accentColor: '#a98aff',
     component: PinDrop,
+  },
+  {
+    slug: 'rubble-rush',
+    title: 'Rubble Rush',
+    instruction: 'Pull and release. Crush the core in one shot.',
+    accentColor: '#d7ff2f',
+    component: RubbleRush,
   },
 ]
 

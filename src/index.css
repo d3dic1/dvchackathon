@@ -271,12 +271,43 @@ button { font: inherit; }
 .game-card[data-game="pin-drop"]::before {
   background: repeating-linear-gradient(90deg, transparent 0 54px, rgba(18,18,18,.3) 55px 58px);
 }
+.game-card[data-game="rubble-rush"]::before {
+  background:
+    repeating-linear-gradient(28deg, transparent 0 46px, rgba(215,255,47,.27) 47px 51px),
+    radial-gradient(circle at 78% 52%, transparent 0 18%, rgba(18,18,18,.24) 18.5% 19%, transparent 19.5%);
+}
 
 .game-canvas {
   width: 100%;
   height: 100%;
   display: block;
   touch-action: pan-y;
+}
+
+.rubble-game {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.rubble-game__launcher {
+  position: absolute;
+  z-index: 3;
+  left: 22%;
+  top: 69%;
+  width: min(38vw, 150px);
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+}
+.rubble-game__launcher:active { cursor: grabbing; }
+.rubble-game__launcher:focus-visible {
+  outline: 3px dashed var(--lime);
+  outline-offset: 5px;
 }
 
 .echo-game {

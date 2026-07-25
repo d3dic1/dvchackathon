@@ -17,6 +17,7 @@ const SCORE_LIMITS = {
   'turbo-serve': 500_000,
   'reel-trouble': 500_000,
   'pin-drop': 500_000,
+  'rubble-rush': 500_000,
 } as const
 
 const PostScoreSchema = z.object({
@@ -24,6 +25,7 @@ const PostScoreSchema = z.object({
     'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
     'micro-mayhem', 'cannon-dash', 'rail-blaster', 'daily-gauntlet',
     'turbo-serve', 'reel-trouble', 'pin-drop',
+    'rubble-rush',
   ]),
   deviceId: z.string().min(8).max(128),
   score: z.number().int().min(0).max(9_999_999),
