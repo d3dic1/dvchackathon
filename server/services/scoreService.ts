@@ -26,6 +26,7 @@ export interface LeaderboardData {
   totalPlayers: number
   /** Effective player key for the requesting device (user_id if merged, device_id otherwise) */
   myPlayerId: string
+  allTimeBest: number
 }
 
 export interface ScoreService {
@@ -38,7 +39,13 @@ export interface ScoreService {
     displayName?: string,
     avatarUrl?: string,
   ): Promise<Score>
-  getLeaderboard(gameSlug: string, limit?: number, deviceId?: string): Promise<LeaderboardData>
+  getLeaderboard(
+    gameSlug: string,
+    limit?: number,
+    deviceId?: string,
+    userId?: string,
+    since?: number,
+  ): Promise<LeaderboardData>
   mergeGuestScores(
     deviceId: string,
     userId: string,
@@ -66,20 +73,30 @@ class InMemoryScoreService implements ScoreService {
     return entry
   }
 
-  async getLeaderboard(gameSlug: string, limit = 10, deviceId?: string): Promise<LeaderboardData> {
+  async getLeaderboard(
+    gameSlug: string,
+    limit = 10,
+    deviceId?: string,
+    userId?: string,
+    since?: number,
+  ): Promise<LeaderboardData> {
+    const allScores = this.scores.filter(s => s.gameSlug === gameSlug)
     const bestByKey = new Map<string, { score: number; displayName?: string; avatarUrl?: string }>()
     const deviceToKey = new Map<string, string>()
-    for (const s of this.scores) {
-      if (s.gameSlug !== gameSlug) continue
+    for (const s of allScores) {
       const key = s.userId ?? s.deviceId
       deviceToKey.set(s.deviceId, key)
+      if (since && s.timestamp < since) continue
       const prev = bestByKey.get(key)?.score ?? 0
       if (s.score > prev) bestByKey.set(key, { score: s.score, displayName: s.displayName, avatarUrl: s.avatarUrl })
     }
     const ranked = Array.from(bestByKey.entries())
       .sort((a, b) => b[1].score - a[1].score)
       .map(([key, info], i) => ({ rank: i + 1, score: info.score, deviceId: key, displayName: info.displayName, avatarUrl: info.avatarUrl }))
-    const myPlayerId = deviceId ? (deviceToKey.get(deviceId) ?? deviceId) : ''
+    const myPlayerId = userId ?? (deviceId ? (deviceToKey.get(deviceId) ?? deviceId) : '')
+    const allTimeBest = allScores
+      .filter(item => (item.userId ?? item.deviceId) === myPlayerId)
+      .reduce((best, item) => Math.max(best, item.score), 0)
     const playerRank = ranked.find(e => e.deviceId === myPlayerId)?.rank ?? 0
     return {
       entries: ranked.slice(0, limit),
@@ -87,6 +104,7 @@ class InMemoryScoreService implements ScoreService {
       rivalEntry: playerRank > 1 ? ranked.find(e => e.rank === playerRank - 1) ?? null : null,
       totalPlayers: ranked.length,
       myPlayerId,
+      allTimeBest,
     }
   }
 
@@ -134,7 +152,13 @@ class PgScoreService implements ScoreService {
     }
   }
 
-  async getLeaderboard(gameSlug: string, limit = 10, deviceId?: string): Promise<LeaderboardData> {
+  async getLeaderboard(
+    gameSlug: string,
+    limit = 10,
+    deviceId?: string,
+    userId?: string,
+    since?: number,
+  ): Promise<LeaderboardData> {
     const safeDeviceId = deviceId ?? ''
     const res = await this.pool.query<{
       player_key: string
@@ -147,7 +171,7 @@ class PgScoreService implements ScoreService {
     }>(
       `WITH player_id_lookup AS (
          -- Resolve the requesting device's effective identity (user_id if merged, else device_id)
-         SELECT COALESCE(MAX(user_id), $3) AS player_key
+         SELECT COALESCE($4, MAX(user_id), $3) AS player_key
          FROM scores
          WHERE game_slug = $1 AND device_id = $3
        ),
@@ -159,6 +183,7 @@ class PgScoreService implements ScoreService {
            MAX(avatar_url)              AS avatar_url
          FROM scores
          WHERE game_slug = $1
+           AND ($5::BIGINT IS NULL OR timestamp >= $5)
          GROUP BY COALESCE(user_id, device_id)
        ),
        ranked AS (
@@ -173,10 +198,10 @@ class PgScoreService implements ScoreService {
           OR r.player_key = pi.player_key
           OR r.rank = (SELECT r2.rank - 1 FROM ranked r2 WHERE r2.player_key = pi.player_key LIMIT 1)
        ORDER BY r.rank`,
-      [gameSlug, limit, safeDeviceId],
+      [gameSlug, limit, safeDeviceId, userId ?? null, since ?? null],
     )
 
-    const myPlayerId = res.rows[0]?.my_player_key ?? safeDeviceId
+    const myPlayerId = userId ?? res.rows[0]?.my_player_key ?? safeDeviceId
     const ranked = res.rows.map(row => ({
       rank: Number(row.rank),
       score: Number(row.best_score),
@@ -186,12 +211,21 @@ class PgScoreService implements ScoreService {
     }))
     const playerRank = ranked.find(e => e.deviceId === myPlayerId)?.rank ?? 0
 
+    const bestRes = await this.pool.query<{ best_score: string | null }>(
+      `SELECT MAX(score)::TEXT AS best_score
+       FROM scores
+       WHERE game_slug = $1
+         AND COALESCE(user_id, device_id) = $2`,
+      [gameSlug, myPlayerId],
+    )
+
     return {
       entries: ranked.filter(e => e.rank <= limit),
       playerEntry: myPlayerId ? ranked.find(e => e.deviceId === myPlayerId) ?? null : null,
       rivalEntry: playerRank > 1 ? ranked.find(e => e.rank === playerRank - 1) ?? null : null,
       totalPlayers: Number(res.rows[0]?.total_players ?? 0),
       myPlayerId,
+      allTimeBest: Number(bestRes.rows[0]?.best_score ?? 0),
     }
   }
 

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { GameMeta } from '../types/game'
 import GameCard from './GameCard'
+import JudgeCard from './JudgeCard'
 
 interface Props {
   games: GameMeta[]
@@ -76,12 +77,13 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
 
   return (
     <div className="feed-stage">
-      <aside className="desktop-poster" aria-hidden="true">
+      <aside className="desktop-poster">
         <p className="desktop-poster__eyebrow">ONE THUMB / ENDLESS PLAY</p>
         <h1>FLICK<br />CADE</h1>
         <p className="desktop-poster__tagline">PLAY THE SCROLL.</p>
         <div className="desktop-poster__stamp">{String(games.length).padStart(2, '0')}<br /><span>GAMES</span></div>
         <p className="desktop-poster__hint">Swipe, score, repeat.<br />No lobby. No loading.</p>
+        <JudgeCard gameCount={games.length} />
       </aside>
 
       <section className="phone-frame" aria-label="FLICKCADE game feed">

@@ -37,4 +37,5 @@ export interface LeaderboardData {
   totalPlayers: number;
   /** Server-resolved effective identity for the requesting device */
   myPlayerId: string;
+  allTimeBest: number;
 }

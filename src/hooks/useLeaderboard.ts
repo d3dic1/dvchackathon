@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LeaderboardData, LeaderboardEntry } from '../types/game'
+import {
+  flushScoreQueue,
+  pendingScoreCount,
+  queueScore,
+  subscribeToScoreQueue,
+} from '../utils/offlineScores'
 
 export function useLeaderboard(
   gameSlug: string,
@@ -11,15 +17,23 @@ export function useLeaderboard(
   const [rivalEntry, setRivalEntry] = useState<LeaderboardEntry | null>(null)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [myPlayerId, setMyPlayerId] = useState(deviceId)
+  const [allTimeBest, setAllTimeBest] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<'today' | 'all'>('today')
+  const [pendingScores, setPendingScores] = useState(pendingScoreCount)
 
   const fetchLeaderboard = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const params = new URLSearchParams({ deviceId })
-      const response = await window.fetch(`/api/leaderboard/${gameSlug}?${params}`)
+      const params = new URLSearchParams({ deviceId, period })
+      const headers: Record<string, string> = {}
+      try {
+        const token = await getClerkToken?.()
+        if (token) headers.Authorization = `Bearer ${token}`
+      } catch { /* guest leaderboard remains available */ }
+      const response = await window.fetch(`/api/leaderboard/${gameSlug}?${params}`, { headers })
       if (!response.ok) throw new Error('Leaderboard unavailable')
       const data = await response.json() as LeaderboardData
       setEntries(data.entries)
@@ -27,16 +41,32 @@ export function useLeaderboard(
       setRivalEntry(data.rivalEntry)
       setTotalPlayers(data.totalPlayers)
       setMyPlayerId(data.myPlayerId ?? deviceId)
+      setAllTimeBest(data.allTimeBest)
     } catch {
       setError('Ranks are offline. Your best is still saved here.')
     } finally {
       setLoading(false)
     }
-  }, [deviceId, gameSlug])
+  }, [deviceId, gameSlug, getClerkToken, period])
 
   useEffect(() => {
     fetchLeaderboard()
   }, [fetchLeaderboard])
+
+  useEffect(() => {
+    const sync = async () => {
+      const remaining = await flushScoreQueue(getClerkToken)
+      setPendingScores(remaining)
+      if (remaining === 0) await fetchLeaderboard()
+    }
+    const unsubscribe = subscribeToScoreQueue(setPendingScores)
+    window.addEventListener('online', sync)
+    if (navigator.onLine && pendingScoreCount() > 0) void sync()
+    return () => {
+      unsubscribe()
+      window.removeEventListener('online', sync)
+    }
+  }, [fetchLeaderboard, getClerkToken])
 
   // Re-fetch after a guest→auth merge so the leaderboard shows the real handle
   useEffect(() => {
@@ -63,12 +93,21 @@ export function useLeaderboard(
         headers,
         body: JSON.stringify({ gameSlug, score, deviceId, runToken }),
       })
-      if (!response.ok) throw new Error('Score rejected')
+      if (!response.ok) {
+        if (response.status >= 500 || response.status === 429) {
+          queueScore({ gameSlug, score, deviceId, runToken, queuedAt: Date.now() })
+          setError('Score queued. It will sync when you are back online.')
+          return true
+        }
+        setError('This run could not be verified. Your local best is safe.')
+        return false
+      }
       await fetchLeaderboard()
       return true
     } catch {
-      setError('Score saved locally. World ranks are offline.')
-      return false
+      queueScore({ gameSlug, score, deviceId, runToken, queuedAt: Date.now() })
+      setError('Score queued. It will sync when you are back online.')
+      return true
     }
   }, [deviceId, fetchLeaderboard, gameSlug, getClerkToken])
 
@@ -78,6 +117,10 @@ export function useLeaderboard(
     rivalEntry,
     totalPlayers,
     myPlayerId,
+    allTimeBest,
+    period,
+    setPeriod,
+    pendingScores,
     loading,
     error,
     submitScore,
