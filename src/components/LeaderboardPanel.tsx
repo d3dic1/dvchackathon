@@ -11,124 +11,39 @@ interface Props {
 
 export default function LeaderboardPanel({ entries, loading, onClose, accentColor, gameTitle, deviceId }: Props) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 60,
-        background: 'rgba(10,10,15,0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '0 0 env(safe-area-inset-bottom) 0',
-        animation: 'slideUp 0.25s ease',
-      }}
-      onClick={onClose}
-    >
-      <style>{`@keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }`}</style>
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '24px 20px',
-          maxWidth: '480px',
-          width: '100%',
-          margin: '0 auto',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+    <div className="leaderboard" onClick={onClose}>
+      <section className="leaderboard__sheet" onClick={event => event.stopPropagation()}>
+        <header>
           <div>
-            <div style={{
-              fontFamily: 'Orbitron, monospace',
-              fontSize: 'clamp(14px, 4vw, 18px)',
-              fontWeight: 700,
-              color: '#f0f0f5',
-              textShadow: `0 0 16px ${accentColor}`,
-            }}>{gameTitle}</div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#6b6b7a', marginTop: '2px' }}>
-              Top Scores
-            </div>
+            <span>LIVE WORLD RANKING</span>
+            <h2>{gameTitle}</h2>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '1.5px solid rgba(255,255,255,0.12)',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              color: '#f0f0f5',
-              fontSize: '18px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >×</button>
-        </div>
+          <button onClick={onClose} aria-label="Close leaderboard">×</button>
+        </header>
+        <div className="leaderboard__rule" style={{ background: accentColor }} />
 
         {loading ? (
-          <div style={{ color: '#6b6b7a', textAlign: 'center', fontFamily: 'Inter, sans-serif', marginTop: '40px' }}>
-            Loading...
-          </div>
+          <div className="leaderboard__empty">Pulling scores...</div>
         ) : entries.length === 0 ? (
-          <div style={{ color: '#6b6b7a', textAlign: 'center', fontFamily: 'Inter, sans-serif', marginTop: '40px' }}>
-            No scores yet. Be the first!
+          <div className="leaderboard__empty">
+            <strong>THE BOARD IS WIDE OPEN.</strong>
+            <span>Finish a run to take the first spot.</span>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
-            {entries.map(e => {
-              const isMe = e.deviceId === deviceId
+          <div className="leaderboard__list">
+            {entries.map(entry => {
+              const isMe = entry.deviceId === deviceId
               return (
-                <div
-                  key={e.rank}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    background: isMe ? `${accentColor}18` : 'rgba(255,255,255,0.04)',
-                    border: isMe ? `1.5px solid ${accentColor}55` : '1.5px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <div style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: e.rank <= 3 ? accentColor : '#6b6b7a',
-                    width: '28px',
-                    textAlign: 'center',
-                  }}>
-                    {e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : `#${e.rank}`}
-                  </div>
-                  <div style={{
-                    flex: 1,
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '13px',
-                    color: isMe ? '#f0f0f5' : '#a0a0b0',
-                  }}>
-                    {isMe ? 'You' : `${e.deviceId.slice(0, 6)}...`}
-                  </div>
-                  <div style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: '#f0f0f5',
-                    textShadow: isMe ? `0 0 10px ${accentColor}` : 'none',
-                  }}>
-                    {e.score}
-                  </div>
+                <div className={`leaderboard__row ${isMe ? 'is-me' : ''}`} key={`${entry.deviceId}-${entry.rank}`}>
+                  <span className="leaderboard__rank">{String(entry.rank).padStart(2, '0')}</span>
+                  <span className="leaderboard__player">{isMe ? 'YOU' : `PLAYER ${entry.deviceId.slice(-4).toUpperCase()}`}</span>
+                  <strong>{entry.score}</strong>
                 </div>
               )
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

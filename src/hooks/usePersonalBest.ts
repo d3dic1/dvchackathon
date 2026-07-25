@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-const KEY_PREFIX = 'ttg_pb_'
+const KEY_PREFIX = 'flickcade_pb_'
 
 export function usePersonalBest(gameSlug: string) {
   const key = KEY_PREFIX + gameSlug

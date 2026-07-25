@@ -15,9 +15,10 @@ interface Props {
   soundEnabled: boolean
   onSoundToggle: () => void
   reducedMotion: boolean
+  position: number
 }
 
-export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, reducedMotion }: Props) {
+export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, reducedMotion, position }: Props) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
@@ -69,13 +70,9 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const GameComponent = game.component
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      position: 'relative',
-      overflow: 'hidden',
-      background: '#0a0a0f',
-    }}>
+    <article className="game-card" data-game={game.slug}>
+      <div className="game-card__texture" />
+      <div className="game-card__number" aria-hidden="true">{String(position).padStart(2, '0')}</div>
       {/* Game canvas/component */}
       <GameComponent
         key={key}
@@ -139,6 +136,6 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           deviceId={deviceId}
         />
       )}
-    </div>
+    </article>
   )
 }

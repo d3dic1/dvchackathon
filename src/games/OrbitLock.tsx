@@ -1,206 +1,204 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
+import { playSound } from '../utils/audio'
 
-export default function OrbitLock({ isActive, onScore, onGameOver, reducedMotion }: GameProps) {
+const TAU = Math.PI * 2
+const BLUE = '#123fc5'
+const CREAM = '#f5e7c6'
+const ORANGE = '#f04a24'
+const LIME = '#d7ff2f'
+const INK = '#121212'
+
+export default function OrbitLock({ isActive, onScore, onGameOver, reducedMotion, soundEnabled }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef({
     angle: 0,
-    targetStart: Math.PI * 0.8,
-    targetSize: 0.35,
-    speed: 1.8,
+    targetCenter: Math.PI,
+    targetSize: .6,
+    speed: 1.55,
     score: 0,
     combo: 0,
     running: false,
     rafId: 0,
-    targetMoving: 0,
+    drift: 0,
     lastTime: 0,
     flash: 0,
-    hitFlash: '',
+    judgement: 'TAP!',
   })
 
-  const draw = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
-    const s = stateRef.current
-    const cx = W / 2, cy = H / 2
-    const r = Math.min(W, H) * 0.34
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const state = stateRef.current
+    const cx = width / 2
+    const cy = height * .48
+    const radius = Math.min(width * .34, height * .22)
 
-    ctx.clearRect(0, 0, W, H)
+    ctx.fillStyle = BLUE
+    ctx.fillRect(0, 0, width, height)
 
-    // bg
-    ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, W, H)
-
-    // outer glow ring
     ctx.save()
-    ctx.shadowBlur = 24
-    ctx.shadowColor = '#c8ff0044'
+    ctx.globalAlpha = .16
+    ctx.strokeStyle = CREAM
+    ctx.lineWidth = 2
+    for (let y = 0; y < height; y += 24) {
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(width, y - 70)
+      ctx.stroke()
+    }
+    ctx.restore()
+
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(-.035)
+    ctx.fillStyle = CREAM
+    ctx.strokeStyle = INK
+    ctx.lineWidth = 5
     ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.strokeStyle = '#1e2a10'
+    ctx.arc(0, 0, radius + 44, 0, TAU)
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, 0, TAU)
+    ctx.strokeStyle = INK
     ctx.lineWidth = 18
     ctx.stroke()
-    ctx.restore()
 
-    // track
     ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.strokeStyle = '#1c1c2a'
-    ctx.lineWidth = 14
+    ctx.arc(cx, cy, radius, 0, TAU)
+    ctx.strokeStyle = ORANGE
+    ctx.lineWidth = 10
+    ctx.setLineDash([7, 12])
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, state.targetCenter - state.targetSize / 2, state.targetCenter + state.targetSize / 2)
+    ctx.strokeStyle = LIME
+    ctx.lineWidth = 25
     ctx.stroke()
 
-    // target zone
-    const tEnd = s.targetStart + s.targetSize
-    ctx.save()
-    ctx.shadowBlur = 30
-    ctx.shadowColor = '#c8ff00'
+    const markerX = cx + Math.cos(state.angle) * radius
+    const markerY = cy + Math.sin(state.angle) * radius
+    ctx.fillStyle = state.flash > 0 ? LIME : CREAM
+    ctx.strokeStyle = INK
+    ctx.lineWidth = 5
     ctx.beginPath()
-    ctx.arc(cx, cy, r, s.targetStart, tEnd)
-    ctx.strokeStyle = '#c8ff00'
-    ctx.lineWidth = 14
-    ctx.stroke()
-    ctx.restore()
-
-    // hit flash
-    if (s.flash > 0) {
-      ctx.save()
-      ctx.globalAlpha = s.flash
-      ctx.shadowBlur = 60
-      ctx.shadowColor = s.hitFlash
-      ctx.beginPath()
-      ctx.arc(cx, cy, r + 10, 0, Math.PI * 2)
-      ctx.strokeStyle = s.hitFlash
-      ctx.lineWidth = 6
-      ctx.stroke()
-      ctx.restore()
-    }
-
-    // marker
-    const mx = cx + Math.cos(s.angle) * r
-    const my = cy + Math.sin(s.angle) * r
-    ctx.save()
-    ctx.shadowBlur = 40
-    ctx.shadowColor = '#00e5ff'
-    ctx.beginPath()
-    ctx.arc(mx, my, 11, 0, Math.PI * 2)
-    ctx.fillStyle = '#00e5ff'
+    ctx.arc(markerX, markerY, 13, 0, TAU)
     ctx.fill()
-    ctx.restore()
+    ctx.stroke()
 
-    // center score
-    ctx.save()
-    ctx.font = `700 ${Math.round(H * 0.055)}px Orbitron, monospace`
-    ctx.fillStyle = '#f0f0f5'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.shadowBlur = 16
-    ctx.shadowColor = '#c8ff00'
-    ctx.fillText(String(s.score), cx, cy - 14)
-    ctx.font = `500 ${Math.round(H * 0.028)}px Inter, sans-serif`
-    ctx.fillStyle = '#6b6b7a'
-    ctx.shadowBlur = 0
-    ctx.fillText(s.combo > 1 ? `×${s.combo} combo` : 'tap at the target', cx, cy + 22)
-    ctx.restore()
+    ctx.fillStyle = INK
+    ctx.font = `900 ${Math.max(24, height * .04)}px "Archivo Black", sans-serif`
+    ctx.fillText(state.judgement, cx, cy - 5)
+    ctx.font = `500 ${Math.max(11, height * .016)}px "DM Mono", monospace`
+    ctx.fillText(state.combo > 1 ? `${state.combo} HIT STREAK` : 'HIT THE LIME', cx, cy + 30)
+
+    if (state.flash > 0) {
+      ctx.save()
+      ctx.globalAlpha = state.flash * .32
+      ctx.fillStyle = state.judgement === 'MISS!' ? ORANGE : LIME
+      ctx.fillRect(0, 0, width, height)
+      ctx.restore()
+    }
   }, [])
 
-  const loop = useCallback((ts: number) => {
+  const loop = useCallback((time: number) => {
     const canvas = canvasRef.current
-    if (!canvas) return
-    const s = stateRef.current
-    if (!s.running) return
-    const ctx = canvas.getContext('2d')!
-    const W = canvas.width, H = canvas.height
+    const state = stateRef.current
+    if (!canvas || !state.running) return
+    const context = canvas.getContext('2d')
+    if (!context) return
 
-    if (W < 100 || H < 200) {
-      s.rafId = requestAnimationFrame(loop)
-      return
-    }
+    const dt = state.lastTime ? Math.min((time - state.lastTime) / 1000, .05) : .016
+    state.lastTime = time
+    state.angle = (state.angle + state.speed * (reducedMotion ? .7 : 1) * dt) % TAU
+    state.drift += .13 * dt
+    state.targetCenter = (Math.PI + Math.sin(state.drift) * 2.2 + TAU) % TAU
+    state.flash = Math.max(0, state.flash - dt * 3.2)
 
-    const dt = s.lastTime ? Math.min((ts - s.lastTime) / 1000, 0.05) : 0.016
-    s.lastTime = ts
-
-    const speedMult = reducedMotion ? 0.5 : 1
-    s.angle += s.speed * speedMult * dt
-    if (s.angle > Math.PI * 2) s.angle -= Math.PI * 2
-
-    // slowly move target zone
-    s.targetMoving += 0.18 * dt
-    s.targetStart = (Math.sin(s.targetMoving) * 0.5 + 0.5) * Math.PI * 2
-
-    if (s.flash > 0) s.flash -= dt * 3
-
-    draw(ctx, W, H)
-    s.rafId = requestAnimationFrame(loop)
+    draw(context, canvas.width, canvas.height)
+    state.rafId = requestAnimationFrame(loop)
   }, [draw, reducedMotion])
 
   const tap = useCallback(() => {
-    const s = stateRef.current
-    if (!s.running) return
-    const norm = ((s.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)
-    const tEnd = (s.targetStart + s.targetSize)
-    const inZone = norm >= s.targetStart && norm <= tEnd
+    const state = stateRef.current
+    if (!state.running) return
+    const rawDistance = Math.abs(state.angle - state.targetCenter)
+    const distance = Math.min(rawDistance, TAU - rawDistance)
 
-    if (inZone) {
-      s.combo++
-      s.score += s.combo
-      s.speed = Math.min(1.8 + s.combo * 0.15, 7)
-      s.targetSize = Math.max(0.18, 0.35 - s.combo * 0.012)
-      s.flash = 1
-      s.hitFlash = '#c8ff00'
+    if (distance <= state.targetSize / 2) {
+      const accuracy = 1 - distance / (state.targetSize / 2)
+      const points = accuracy > .72 ? 5 : accuracy > .35 ? 3 : 1
+      state.combo += 1
+      state.score += points * Math.max(1, state.combo)
+      state.speed = Math.min(1.55 + state.combo * .14, 6.2)
+      state.targetSize = Math.max(.24, .6 - state.combo * .018)
+      state.judgement = points === 5 ? 'PERFECT!' : points === 3 ? 'GREAT!' : 'LOCKED!'
+      state.flash = 1
       hapticLight()
-      onScore(s.score)
+      playSound('success', soundEnabled)
+      onScore(state.score)
     } else {
-      s.flash = 1
-      s.hitFlash = '#ff006e'
+      state.judgement = 'MISS!'
+      state.flash = 1
+      state.running = false
       hapticError()
-      s.running = false
-      cancelAnimationFrame(s.rafId)
-      onGameOver(s.score)
+      playSound('fail', soundEnabled)
+      onGameOver(state.score)
     }
-  }, [onScore, onGameOver])
+  }, [onGameOver, onScore, soundEnabled])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      const ratio = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = Math.round(canvas.offsetWidth * ratio)
+      canvas.height = Math.round(canvas.offsetHeight * ratio)
     }
     resize()
-    const ro = new ResizeObserver(resize)
-    ro.observe(canvas)
-    return () => ro.disconnect()
+    const observer = new ResizeObserver(resize)
+    observer.observe(canvas)
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
-    const s = stateRef.current
+    const state = stateRef.current
     if (isActive) {
-      s.angle = 0
-      s.targetStart = Math.PI * 0.8
-      s.targetSize = 0.35
-      s.speed = 1.8
-      s.score = 0
-      s.combo = 0
-      s.flash = 0
-      s.targetMoving = 0
-      s.lastTime = 0
-      s.running = true
-      s.rafId = requestAnimationFrame(loop)
+      Object.assign(state, {
+        angle: 0, targetCenter: Math.PI, targetSize: .6, speed: 1.55, score: 0,
+        combo: 0, running: true, drift: 0, lastTime: 0, flash: 0, judgement: 'TAP!',
+      })
+      state.rafId = requestAnimationFrame(loop)
     } else {
-      s.running = false
-      cancelAnimationFrame(s.rafId)
+      state.running = false
+      cancelAnimationFrame(state.rafId)
     }
     return () => {
-      s.running = false
-      cancelAnimationFrame(s.rafId)
+      state.running = false
+      cancelAnimationFrame(state.rafId)
     }
   }, [isActive, loop])
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-      onClick={tap}
-      onTouchEnd={e => { e.preventDefault(); tap() }}
+      className="game-canvas"
+      role="button"
+      tabIndex={0}
+      aria-label="Orbit Lock. Tap when the marker reaches the lime target."
+      onPointerUp={tap}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          tap()
+        }
+      }}
     />
   )
 }

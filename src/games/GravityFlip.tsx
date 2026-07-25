@@ -1,270 +1,226 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
+import { playSound } from '../utils/audio'
 
-interface Obstacle {
-  x: number
-  gapY: number   // center of gap
-  gapH: number
-}
+interface Obstacle { x: number; side: 'floor' | 'ceiling'; passed: boolean }
 
-export default function GravityFlip({ isActive, onScore, onGameOver, reducedMotion }: GameProps) {
+const BLUE = '#123fc5'
+const CREAM = '#f5e7c6'
+const ORANGE = '#f04a24'
+const LIME = '#d7ff2f'
+const INK = '#121212'
+
+export default function GravityFlip({ isActive, onScore, onGameOver, reducedMotion, soundEnabled }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef({
-    playerY: -1, // -1 = uninitialized; set on first valid frame
     onFloor: true,
-    score: 0,
-    speed: 180,
+    playerY: -1,
     obstacles: [] as Obstacle[],
+    score: 0,
+    speed: 230,
     spawnTimer: 0,
-    spawnInterval: 1.5,
+    spawnInterval: 1.35,
     running: false,
     rafId: 0,
     lastTime: 0,
     flash: 0,
-    dist: 0,
-    tunnelH: 0,
   })
 
-  const PLAYER_SIZE = 18
-  const TUNNEL_MARGIN = 0.12
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const state = stateRef.current
+    const top = height * .18
+    const bottom = height * .82
+    const playerX = width * .24
 
-  const draw = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
-    const s = stateRef.current
-    const tunnelTop = H * TUNNEL_MARGIN
-    const tunnelBot = H * (1 - TUNNEL_MARGIN)
-    s.tunnelH = tunnelBot - tunnelTop
+    ctx.fillStyle = BLUE
+    ctx.fillRect(0, 0, width, height)
 
-    ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, W, H)
+    ctx.fillStyle = CREAM
+    ctx.fillRect(0, 0, width, top)
+    ctx.fillRect(0, bottom, width, height - bottom)
 
-    // tunnel walls
-    const topGrad = ctx.createLinearGradient(0, 0, 0, tunnelTop)
-    topGrad.addColorStop(0, '#00e5ff')
-    topGrad.addColorStop(1, '#00e5ff22')
-    ctx.fillStyle = topGrad
-    ctx.fillRect(0, 0, W, tunnelTop)
-
-    const botGrad = ctx.createLinearGradient(0, tunnelBot, 0, H)
-    botGrad.addColorStop(0, '#00e5ff22')
-    botGrad.addColorStop(1, '#00e5ff')
-    ctx.fillStyle = botGrad
-    ctx.fillRect(0, tunnelBot, W, H - tunnelBot)
-
-    // wall glow lines
-    ctx.save()
-    ctx.shadowBlur = 20
-    ctx.shadowColor = '#00e5ff'
-    ctx.strokeStyle = '#00e5ff'
-    ctx.lineWidth = 2
+    ctx.strokeStyle = INK
+    ctx.lineWidth = 7
     ctx.beginPath()
-    ctx.moveTo(0, tunnelTop)
-    ctx.lineTo(W, tunnelTop)
+    ctx.moveTo(0, top)
+    ctx.lineTo(width, top)
+    ctx.moveTo(0, bottom)
+    ctx.lineTo(width, bottom)
     ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(0, tunnelBot)
-    ctx.lineTo(W, tunnelBot)
-    ctx.stroke()
-    ctx.restore()
 
-    // obstacles
-    for (const ob of s.obstacles) {
-      const gapTop = ob.gapY - ob.gapH / 2
-      const gapBot = ob.gapY + ob.gapH / 2
-
-      ctx.save()
-      ctx.shadowBlur = 16
-      ctx.shadowColor = '#ff006e'
-      ctx.fillStyle = '#ff006e'
-      // top block
-      ctx.fillRect(ob.x - 18, tunnelTop, 36, gapTop - tunnelTop)
-      // bottom block
-      ctx.fillRect(ob.x - 18, gapBot, 36, tunnelBot - gapBot)
-      ctx.restore()
+    ctx.fillStyle = ORANGE
+    for (let x = -30; x < width + 30; x += 48) {
+      ctx.beginPath()
+      ctx.moveTo(x, top)
+      ctx.lineTo(x + 18, top - 24)
+      ctx.lineTo(x + 36, top)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.moveTo(x, bottom)
+      ctx.lineTo(x + 18, bottom + 24)
+      ctx.lineTo(x + 36, bottom)
+      ctx.fill()
     }
 
-    // player
-    const px = W * 0.25
-    const py = s.playerY
-    ctx.save()
-    ctx.shadowBlur = 35
-    ctx.shadowColor = '#9b5de5'
-    ctx.fillStyle = '#9b5de5'
-    if (s.onFloor) {
-      ctx.beginPath()
-      ctx.moveTo(px, py - PLAYER_SIZE)
-      ctx.lineTo(px + PLAYER_SIZE * 0.6, py + PLAYER_SIZE * 0.5)
-      ctx.lineTo(px - PLAYER_SIZE * 0.6, py + PLAYER_SIZE * 0.5)
-      ctx.closePath()
-    } else {
-      // flipped triangle
-      ctx.beginPath()
-      ctx.moveTo(px, py + PLAYER_SIZE)
-      ctx.lineTo(px + PLAYER_SIZE * 0.6, py - PLAYER_SIZE * 0.5)
-      ctx.lineTo(px - PLAYER_SIZE * 0.6, py - PLAYER_SIZE * 0.5)
-      ctx.closePath()
+    for (const obstacle of state.obstacles) {
+      const obstacleHeight = (bottom - top) * .42
+      const y = obstacle.side === 'floor' ? bottom - obstacleHeight : top
+      ctx.fillStyle = ORANGE
+      ctx.strokeStyle = INK
+      ctx.lineWidth = 5
+      ctx.fillRect(obstacle.x - 24, y, 48, obstacleHeight)
+      ctx.strokeRect(obstacle.x - 24, y, 48, obstacleHeight)
+      ctx.fillStyle = LIME
+      for (let stripe = y + 10; stripe < y + obstacleHeight; stripe += 25) {
+        ctx.fillRect(obstacle.x - 18, stripe, 36, 8)
+      }
     }
+
+    ctx.save()
+    ctx.translate(playerX, state.playerY)
+    if (!state.onFloor) ctx.scale(1, -1)
+    ctx.fillStyle = LIME
+    ctx.strokeStyle = INK
+    ctx.lineWidth = 5
+    ctx.beginPath()
+    ctx.roundRect(-22, -33, 44, 38, 12)
     ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = INK
+    ctx.fillRect(-11, -20, 7, 7)
+    ctx.fillRect(5, -20, 7, 7)
+    ctx.beginPath()
+    ctx.moveTo(-15, 7)
+    ctx.lineTo(-24, 20)
+    ctx.moveTo(15, 7)
+    ctx.lineTo(24, 20)
+    ctx.stroke()
     ctx.restore()
 
-    if (s.flash > 0) {
-      ctx.save()
-      ctx.globalAlpha = s.flash * 0.35
-      ctx.fillStyle = '#ff006e'
-      ctx.fillRect(0, 0, W, H)
-      ctx.restore()
-    }
-
-    // score
-    ctx.save()
-    ctx.font = `700 ${Math.round(H * 0.045)}px Orbitron, monospace`
-    ctx.fillStyle = '#f0f0f5'
+    ctx.fillStyle = CREAM
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.shadowBlur = 16
-    ctx.shadowColor = '#9b5de5'
-    ctx.fillText(String(s.score), W / 2, H / 2)
-    ctx.restore()
-  }, [])
+    ctx.font = `500 ${Math.max(12, height * .017)}px "DM Mono", monospace`
+    ctx.fillText(state.onFloor ? 'GRAVITY: DOWN ↓' : 'GRAVITY: UP ↑', width / 2, height / 2)
 
-  const checkCollision = useCallback((W: number, H: number): boolean => {
-    const s = stateRef.current
-    if (s.playerY < 0) return false // not yet initialized
-    const tunnelTop = H * TUNNEL_MARGIN
-    const tunnelBot = H * (1 - TUNNEL_MARGIN)
-    const px = W * 0.25, py = s.playerY
-    const pr = PLAYER_SIZE * 0.6  // must be < 0.7×PLAYER_SIZE (the wall offset)
-
-    if (py - pr < tunnelTop || py + pr > tunnelBot) return true
-    for (const ob of s.obstacles) {
-      if (Math.abs(ob.x - px) > 36) continue
-      const gapTop = ob.gapY - ob.gapH / 2
-      const gapBot = ob.gapY + ob.gapH / 2
-      if (py - pr < gapTop || py + pr > gapBot) return true
+    if (state.flash > 0) {
+      ctx.globalAlpha = state.flash * .5
+      ctx.fillStyle = ORANGE
+      ctx.fillRect(0, 0, width, height)
+      ctx.globalAlpha = 1
     }
-    return false
   }, [])
 
-  const loop = useCallback((ts: number) => {
+  const loop = useCallback((time: number) => {
     const canvas = canvasRef.current
-    if (!canvas) return
-    const s = stateRef.current
-    if (!s.running) return
-    const ctx = canvas.getContext('2d')!
-    const W = canvas.width, H = canvas.height
+    const state = stateRef.current
+    if (!canvas || !state.running) return
+    const context = canvas.getContext('2d')
+    if (!context) return
+    const width = canvas.width
+    const height = canvas.height
+    const top = height * .18
+    const bottom = height * .82
+    const dt = state.lastTime ? Math.min((time - state.lastTime) / 1000, .05) : .016
+    state.lastTime = time
+    const speed = state.speed * (reducedMotion ? .74 : 1)
 
-    // Wait until canvas has real dimensions (default canvas is 300×150)
-    if (W < 100 || H < 200) {
-      s.rafId = requestAnimationFrame(loop)
-      return
+    const targetY = state.onFloor ? bottom - 14 : top + 14
+    if (state.playerY < 0) state.playerY = targetY
+    state.playerY += (targetY - state.playerY) * Math.min(1, dt * (reducedMotion ? 28 : 16))
+
+    state.obstacles.forEach(obstacle => {
+      obstacle.x -= speed * dt
+      if (!obstacle.passed && obstacle.x < width * .16) {
+        obstacle.passed = true
+        state.score += 10
+        onScore(state.score)
+      }
+    })
+    state.obstacles = state.obstacles.filter(obstacle => obstacle.x > -70)
+
+    state.spawnTimer += dt
+    if (state.spawnTimer >= state.spawnInterval) {
+      state.spawnTimer = 0
+      const lastSide = state.obstacles.at(-1)?.side
+      const side = Math.random() < .62 && lastSide ? lastSide : (Math.random() > .5 ? 'floor' : 'ceiling')
+      state.obstacles.push({ x: width + 40, side, passed: false })
+      state.spawnInterval = Math.max(.72, 1.35 - state.score * .004)
     }
+    state.speed = Math.min(500, 230 + state.score * 1.9)
+    state.flash = Math.max(0, state.flash - dt * 5)
 
-    const tunnelTop = H * TUNNEL_MARGIN
-    const tunnelBot = H * (1 - TUNNEL_MARGIN)
-
-    // Initialize playerY on first valid frame
-    if (s.playerY < 0) {
-      s.playerY = tunnelBot - PLAYER_SIZE * 0.7
-    }
-
-    const dt = s.lastTime ? Math.min((ts - s.lastTime) / 1000, 0.05) : 0.016
-    s.lastTime = ts
-
-    const speedMult = reducedMotion ? 0.6 : 1
-    const spd = s.speed * speedMult
-
-    // move obstacles
-    for (const ob of s.obstacles) {
-      ob.x -= spd * dt
-    }
-    s.obstacles = s.obstacles.filter(ob => ob.x > -40)
-
-    // spawn
-    s.spawnTimer += dt
-    if (s.spawnTimer >= s.spawnInterval) {
-      s.spawnTimer = 0
-      const gapH = Math.max(80, s.tunnelH * 0.42 - s.score * 0.8)
-      const margin = 30
-      const gapY = tunnelTop + margin + Math.random() * (s.tunnelH - gapH - margin * 2) + gapH / 2
-      s.obstacles.push({ x: W + 20, gapY, gapH })
-    }
-
-    // player snap to floor/ceiling
-    const targetY = s.onFloor ? tunnelBot - PLAYER_SIZE * 0.7 : tunnelTop + PLAYER_SIZE * 0.7
-    s.playerY += (targetY - s.playerY) * (reducedMotion ? 1 : Math.min(1, dt * 22))
-
-    s.dist += spd * dt
-    s.score = Math.floor(s.dist / 80)
-    s.speed = 180 + s.score * 3
-
-    if (s.flash > 0) s.flash -= dt * 4
-
-    if (checkCollision(W, H)) {
-      s.flash = 1
+    const collision = state.obstacles.some(obstacle => {
+      if (Math.abs(obstacle.x - width * .24) > 42) return false
+      return (state.onFloor && obstacle.side === 'floor') || (!state.onFloor && obstacle.side === 'ceiling')
+    })
+    if (collision) {
+      state.running = false
+      state.flash = 1
       hapticError()
-      s.running = false
-      cancelAnimationFrame(s.rafId)
-      draw(ctx, W, H)
-      onGameOver(s.score)
+      playSound('fail', soundEnabled)
+      draw(context, width, height)
+      onGameOver(state.score)
       return
     }
 
-    onScore(s.score)
-    draw(ctx, W, H)
-    s.rafId = requestAnimationFrame(loop)
-  }, [draw, checkCollision, onScore, onGameOver, reducedMotion])
+    draw(context, width, height)
+    state.rafId = requestAnimationFrame(loop)
+  }, [draw, onGameOver, onScore, reducedMotion, soundEnabled])
 
   const tap = useCallback(() => {
-    const s = stateRef.current
-    if (!s.running) return
-    s.onFloor = !s.onFloor
+    if (!stateRef.current.running) return
+    stateRef.current.onFloor = !stateRef.current.onFloor
     hapticLight()
-  }, [])
+    playSound('tap', soundEnabled)
+  }, [soundEnabled])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
+    const resize = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = Math.round(canvas.offsetWidth * ratio)
+      canvas.height = Math.round(canvas.offsetHeight * ratio)
+    }
     resize()
-    const ro = new ResizeObserver(resize)
-    ro.observe(canvas)
-    return () => ro.disconnect()
+    const observer = new ResizeObserver(resize)
+    observer.observe(canvas)
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
-    const s = stateRef.current
-    const canvas = canvasRef.current
-    if (isActive && canvas) {
-      const H = canvas.offsetHeight
-      const tunnelBot = H * (1 - TUNNEL_MARGIN)
-      s.playerY = -1 // reset sentinel; loop will initialize from real canvas dims
-      s.onFloor = true
-      s.obstacles = []
-      s.score = 0
-      s.speed = 180
-      s.spawnTimer = 0
-      s.spawnInterval = 1.5
-      s.lastTime = 0
-      s.flash = 0
-      s.dist = 0
-      s.running = true
-      s.rafId = requestAnimationFrame(loop)
+    const state = stateRef.current
+    if (isActive) {
+      Object.assign(state, {
+        onFloor: true, playerY: -1, obstacles: [], score: 0, speed: 230, spawnTimer: 0,
+        spawnInterval: 1.35, running: true, lastTime: 0, flash: 0,
+      })
+      state.rafId = requestAnimationFrame(loop)
     } else {
-      s.running = false
-      cancelAnimationFrame(s.rafId)
+      state.running = false
+      cancelAnimationFrame(state.rafId)
     }
     return () => {
-      s.running = false
-      cancelAnimationFrame(s.rafId)
+      state.running = false
+      cancelAnimationFrame(state.rafId)
     }
   }, [isActive, loop])
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-      onClick={tap}
-      onTouchEnd={e => { e.preventDefault(); tap() }}
+      className="game-canvas"
+      role="button"
+      tabIndex={0}
+      aria-label="Gravity Flip. Tap to flip between the floor and ceiling."
+      onPointerUp={tap}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          tap()
+        }
+      }}
     />
   )
 }

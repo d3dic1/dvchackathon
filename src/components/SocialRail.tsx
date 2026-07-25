@@ -8,103 +8,45 @@ interface Props {
 }
 
 export default function SocialRail({ soundEnabled, onSoundToggle, onLeaderboard, liked, onLike, accentColor }: Props) {
-  const btn: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '5px',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '8px',
-    touchAction: 'manipulation',
-    color: '#f0f0f5',
-    fontFamily: 'Inter, sans-serif',
-    fontSize: '10px',
-    fontWeight: 500,
-    letterSpacing: '0.04em',
-  }
-
-  const icon: React.CSSProperties = {
-    width: '44px',
-    height: '44px',
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1.5px solid rgba(255,255,255,0.12)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '20px',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    transition: 'transform 0.12s, box-shadow 0.12s',
-  }
-
   return (
-    <div style={{
-      position: 'absolute',
-      right: '10px',
-      bottom: '120px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-      zIndex: 20,
-    }}>
-      {/* Leaderboard */}
-      <button style={btn} onClick={onLeaderboard} aria-label="Leaderboard">
-        <div style={{
-          ...icon,
-          boxShadow: `0 0 12px ${accentColor}44`,
-          borderColor: `${accentColor}44`,
-        }}>🏆</div>
-        <span style={{ color: '#6b6b7a' }}>Ranks</span>
+    <div className="social-rail">
+      <button className="rail-button" onClick={onLeaderboard} aria-label="Leaderboard">
+        <span className="rail-button__icon" style={{ background: accentColor }}><TrophyIcon /></span>
+        <span>Ranks</span>
       </button>
-
-      {/* Like */}
-      <button
-        style={btn}
-        onClick={onLike}
-        aria-label={liked ? 'Unlike' : 'Like'}
-        onPointerDown={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.88)' }}
-        onPointerUp={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
-      >
-        <div style={{
-          ...icon,
-          background: liked ? `${accentColor}22` : 'rgba(255,255,255,0.08)',
-          borderColor: liked ? accentColor : 'rgba(255,255,255,0.12)',
-          boxShadow: liked ? `0 0 16px ${accentColor}66` : 'none',
-          fontSize: '22px',
-        }}>
-          {liked ? '♥' : '♡'}
-        </div>
-        <span style={{ color: liked ? accentColor : '#6b6b7a' }}>Like</span>
+      <button className={`rail-button ${liked ? 'is-active' : ''}`} onClick={onLike} aria-label={liked ? 'Unlike' : 'Like'}>
+        <span className="rail-button__icon"><HeartIcon filled={liked} /></span>
+        <span>Like</span>
       </button>
-
-      {/* Share */}
       <button
-        style={btn}
-        onClick={() => {
-          if (navigator.share) {
-            navigator.share({ title: 'Tip Tap Games', url: window.location.href }).catch(() => {})
-          }
+        className="rail-button"
+        onClick={async () => {
+          const data = { title: 'FLICKCADE', text: 'Beat my score on FLICKCADE.', url: window.location.href }
+          if (navigator.share) await navigator.share(data).catch(() => {})
+          else await navigator.clipboard?.writeText(window.location.href)
         }}
         aria-label="Share"
       >
-        <div style={icon}>↗</div>
-        <span style={{ color: '#6b6b7a' }}>Share</span>
+        <span className="rail-button__icon"><ShareIcon /></span>
+        <span>Share</span>
       </button>
-
-      {/* Sound */}
-      <button style={btn} onClick={onSoundToggle} aria-label={soundEnabled ? 'Mute' : 'Unmute'}>
-        <div style={{
-          ...icon,
-          background: soundEnabled ? 'rgba(255,255,255,0.08)' : 'rgba(255,0,110,0.12)',
-          borderColor: soundEnabled ? 'rgba(255,255,255,0.12)' : '#ff006e55',
-        }}>
-          {soundEnabled ? '🔊' : '🔇'}
-        </div>
-        <span style={{ color: '#6b6b7a' }}>{soundEnabled ? 'Sound' : 'Muted'}</span>
+      <button className="rail-button" onClick={onSoundToggle} aria-label={soundEnabled ? 'Mute' : 'Unmute'}>
+        <span className="rail-button__icon"><SoundIcon muted={!soundEnabled} /></span>
+        <span>{soundEnabled ? 'Sound' : 'Muted'}</span>
       </button>
     </div>
   )
+}
+
+function TrophyIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4c0 3-1.8 5-4 5s-4-2-4-5V4Zm0 2H4v2c0 2 1.4 3 3 3m9-5h4v2c0 2-1.4 3-3 3M12 13v4m-4 3h8m-6-3h4" /></svg>
+}
+function HeartIcon({ filled }: { filled: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill={filled ? 'currentColor' : 'none'} d="M20.8 5.8c-1.7-1.7-4.4-1.7-6.1 0L12 8.5 9.3 5.8a4.3 4.3 0 0 0-6.1 6.1L12 20l8.8-8.1a4.3 4.3 0 0 0 0-6.1Z" /></svg>
+}
+function ShareIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5m0-5-8 8m6 0v5H5V6h5" /></svg>
+}
+function SoundIcon({ muted }: { muted: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4H5Zm12-1c1.5 1.5 1.5 4.5 0 6m2-8c2.8 2.8 2.8 7.2 0 10" />{muted && <path d="M4 4l16 16" />}</svg>
 }

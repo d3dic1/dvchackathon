@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 *.log
+tmp/
+assets/
+pnpm-lock.yaml
+pnpm-workspace.yaml

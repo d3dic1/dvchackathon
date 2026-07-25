@@ -11,28 +11,28 @@ const GAMES: GameMeta[] = [
     slug: 'orbit-lock',
     title: 'Orbit Lock',
     instruction: 'Tap when the marker hits the glowing zone.',
-    accentColor: '#c8ff00',
+    accentColor: '#d7ff2f',
     component: OrbitLock,
   },
   {
     slug: 'lane-shift',
     title: 'Lane Shift',
     instruction: 'Tap to switch lanes and dodge barriers.',
-    accentColor: '#9b5de5',
+    accentColor: '#ff4b23',
     component: LaneShift,
   },
   {
     slug: 'echo-grid',
     title: 'Echo Grid',
     instruction: 'Repeat the flashing sequence on the pads.',
-    accentColor: '#00e5ff',
+    accentColor: '#f5e7c6',
     component: EchoGrid,
   },
   {
     slug: 'gravity-flip',
     title: 'Gravity Flip',
     instruction: 'Tap to flip gravity and dodge obstacles.',
-    accentColor: '#9b5de5',
+    accentColor: '#d7ff2f',
     component: GravityFlip,
   },
 ]
@@ -50,13 +50,13 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ width: '100%', height: '100%', overflow: 'hidden', background: '#0a0a0f' }}>
+    <main className="app-shell">
       <Feed
         games={GAMES}
         soundEnabled={soundEnabled}
         onSoundToggle={() => setSoundEnabled(s => !s)}
         reducedMotion={reducedMotion}
       />
-    </div>
+    </main>
   )
 }

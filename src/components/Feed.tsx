@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { GameMeta } from '../types/game'
 import GameCard from './GameCard'
 
@@ -9,121 +9,105 @@ interface Props {
   reducedMotion: boolean
 }
 
-// Shuffle utility
-function shuffled<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
+function shuffled<T>(items: T[]): T[] {
+  const result = [...items]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
   }
-  return a
+  return result
 }
 
-// Build a "virtual" infinite list by recycling shuffled decks
 function buildQueue(games: GameMeta[], count: number): GameMeta[] {
-  const result: GameMeta[] = []
-  while (result.length < count) {
-    result.push(...shuffled(games))
-  }
+  const result: GameMeta[] = [...games]
+  while (result.length < count) result.push(...shuffled(games))
   return result.slice(0, count)
 }
 
-const QUEUE_SIZE = 20
+const QUEUE_SIZE = 24
 
 export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [queue] = useState(() => buildQueue(games, QUEUE_SIZE))
 
-  // Use IntersectionObserver to detect which card is visible
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-
     const cards = Array.from(container.children) as HTMLElement[]
-    const observers: IntersectionObserver[] = []
-
-    cards.forEach((card, i) => {
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-            setActiveIndex(i)
-          }
-        },
-        { threshold: 0.6, root: container }
-      )
-      obs.observe(card)
-      observers.push(obs)
-    })
-
-    return () => observers.forEach(o => o.disconnect())
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        const visibleCard = visible?.target as HTMLElement | undefined
+        if (visibleCard?.dataset.index) setActiveIndex(Number(visibleCard.dataset.index))
+      },
+      { threshold: [0.55, 0.75, 0.95], root: container },
+    )
+    cards.forEach(card => observer.observe(card))
+    return () => observer.disconnect()
   }, [queue.length])
 
-  // Keyboard navigation
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
+    const handleKey = (event: KeyboardEvent) => {
       const container = containerRef.current
-      if (!container) return
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        const next = Math.min(activeIndex + 1, queue.length - 1)
-        container.children[next]?.scrollIntoView({ behavior: 'smooth' })
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        const prev = Math.max(activeIndex - 1, 0)
-        container.children[prev]?.scrollIntoView({ behavior: 'smooth' })
-      }
+      if (!container || !['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp'].includes(event.key)) return
+      event.preventDefault()
+      const direction = event.key.includes('Down') ? 1 : -1
+      const next = Math.max(0, Math.min(activeIndex + direction, queue.length - 1))
+      container.children[next]?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' })
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [activeIndex, queue.length])
+  }, [activeIndex, queue.length, reducedMotion])
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        overflowY: 'scroll',
-        scrollSnapType: 'y mandatory',
-        WebkitOverflowScrolling: 'touch',
-        scrollBehavior: 'smooth',
-        // hide scrollbar
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      }}
-    >
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
+    <div className="feed-stage">
+      <aside className="desktop-poster" aria-hidden="true">
+        <p className="desktop-poster__eyebrow">ONE THUMB / ENDLESS PLAY</p>
+        <h1>FLICK<br />CADE</h1>
+        <p className="desktop-poster__tagline">PLAY THE SCROLL.</p>
+        <div className="desktop-poster__stamp">04<br /><span>GAMES</span></div>
+        <p className="desktop-poster__hint">Swipe, score, repeat.<br />No lobby. No loading.</p>
+      </aside>
 
-      {queue.map((game, i) => {
-        // Only render cards near the active one to save memory
-        const visible = Math.abs(i - activeIndex) <= 1
-        return (
-          <div
-            key={`${game.slug}-${i}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              scrollSnapAlign: 'start',
-              scrollSnapStop: 'always',
-              flexShrink: 0,
-              position: 'relative',
-            }}
-          >
-            {visible && (
-              <GameCard
-                game={game}
-                isActive={i === activeIndex}
-                soundEnabled={soundEnabled}
-                onSoundToggle={onSoundToggle}
-                reducedMotion={reducedMotion}
-              />
-            )}
-          </div>
-        )
-      })}
+      <section className="phone-frame" aria-label="FLICKCADE game feed">
+        <header className="feed-brand">
+          <span className="feed-brand__name">FLICKCADE</span>
+          <span className="feed-brand__counter">
+            {String((activeIndex % games.length) + 1).padStart(2, '0')} / 04
+          </span>
+        </header>
+
+        <div ref={containerRef} className="feed">
+          {queue.map((game, index) => {
+            const visible = Math.abs(index - activeIndex) <= 1
+            return (
+              <div
+                className="feed__page"
+                data-index={index}
+                key={`${game.slug}-${index}`}
+              >
+                {visible && (
+                  <GameCard
+                    game={game}
+                    isActive={index === activeIndex}
+                    soundEnabled={soundEnabled}
+                    onSoundToggle={onSoundToggle}
+                    reducedMotion={reducedMotion}
+                    position={(index % games.length) + 1}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="swipe-cue" aria-hidden="true">
+          <span>SWIPE FOR NEXT</span><i />
+        </div>
+      </section>
     </div>
   )
 }

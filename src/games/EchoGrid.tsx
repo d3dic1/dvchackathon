@@ -1,200 +1,140 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
+import { playSound } from '../utils/audio'
 
-const PAD_COLORS = ['#c8ff00', '#00e5ff', '#ff006e', '#9b5de5']
-const PAD_GLOW = ['#c8ff0080', '#00e5ff80', '#ff006e80', '#9b5de580']
-
+const PAD_COLORS = ['#f04a24', '#123fc5', '#d7ff2f', '#121212']
+const PAD_LABELS = ['A', 'B', 'C', 'D']
 type Phase = 'showing' | 'input' | 'correct' | 'fail'
 
-export default function EchoGrid({ isActive, onScore, onGameOver }: GameProps) {
-  const stateRef = useRef({
-    sequence: [] as number[],
-    playerSeq: [] as number[],
-    phase: 'showing' as Phase,
-    showIdx: 0,
-    score: 0,
-    lit: -1,
-    timerId: undefined as ReturnType<typeof setTimeout> | undefined,
-  })
-
+export default function EchoGrid({ isActive, onScore, onGameOver, reducedMotion, soundEnabled }: GameProps) {
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const runRef = useRef(0)
+  const sequenceRef = useRef<number[]>([])
+  const inputRef = useRef<number[]>([])
+  const scoreRef = useRef(0)
+  const phaseRef = useRef<Phase>('showing')
   const [lit, setLit] = useState(-1)
   const [phase, setPhase] = useState<Phase>('showing')
   const [score, setScore] = useState(0)
-  const [inputLit, setInputLit] = useState(-1)
+  const [inputCount, setInputCount] = useState(0)
 
-  const addStep = useCallback(() => {
-    const s = stateRef.current
-    s.sequence.push(Math.floor(Math.random() * 4))
-    s.playerSeq = []
-    s.showIdx = 0
-    s.phase = 'showing'
-    setPhase('showing')
-    setLit(-1)
-    const showNext = (idx: number) => {
-      if (idx >= s.sequence.length) {
-        clearTimeout(s.timerId)
-        s.timerId = setTimeout(() => {
-          s.phase = 'input'
-          setPhase('input')
-          setLit(-1)
-        }, 400)
-        return
-      }
-      clearTimeout(s.timerId)
-      s.timerId = setTimeout(() => {
-        setLit(s.sequence[idx])
-        s.timerId = setTimeout(() => {
-          setLit(-1)
-          s.timerId = setTimeout(() => showNext(idx + 1), 200)
-        }, 500)
-      }, 300)
-    }
-    showNext(0)
+  const wait = useCallback((callback: () => void, delay: number) => {
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(callback, delay)
   }, [])
 
-  const startGame = useCallback(() => {
-    const s = stateRef.current
-    s.sequence = []
-    s.playerSeq = []
-    s.score = 0
-    setScore(0)
-    addStep()
-  }, [addStep])
+  const showSequence = useCallback((runId: number) => {
+    let index = 0
+    const pace = Math.max(220, 520 - sequenceRef.current.length * 22)
+    phaseRef.current = 'showing'
+    setPhase('showing')
+    setInputCount(0)
 
-  const handlePad = useCallback((idx: number) => {
-    const s = stateRef.current
-    if (s.phase !== 'input') return
+    const next = () => {
+      if (runId !== runRef.current) return
+      if (index >= sequenceRef.current.length) {
+        setLit(-1)
+        wait(() => {
+          if (runId !== runRef.current) return
+          phaseRef.current = 'input'
+          setPhase('input')
+        }, reducedMotion ? 100 : 280)
+        return
+      }
+      setLit(sequenceRef.current[index])
+      wait(() => {
+        setLit(-1)
+        index += 1
+        wait(next, reducedMotion ? 80 : 140)
+      }, reducedMotion ? 180 : pace)
+    }
+    wait(next, 280)
+  }, [reducedMotion, wait])
+
+  const addRound = useCallback((runId: number) => {
+    sequenceRef.current.push(Math.floor(Math.random() * 4))
+    inputRef.current = []
+    showSequence(runId)
+  }, [showSequence])
+
+  const handlePad = useCallback((index: number) => {
+    if (phaseRef.current !== 'input') return
     hapticLight()
-    setInputLit(idx)
-    setTimeout(() => setInputLit(-1), 150)
+    playSound('tap', soundEnabled)
+    setLit(index)
+    wait(() => setLit(-1), 110)
+    inputRef.current.push(index)
+    setInputCount(inputRef.current.length)
+    const position = inputRef.current.length - 1
 
-    s.playerSeq.push(idx)
-    const pos = s.playerSeq.length - 1
-
-    if (s.playerSeq[pos] !== s.sequence[pos]) {
-      hapticError()
-      s.phase = 'fail'
+    if (inputRef.current[position] !== sequenceRef.current[position]) {
+      phaseRef.current = 'fail'
       setPhase('fail')
-      clearTimeout(s.timerId)
-      onGameOver(s.score)
+      hapticError()
+      playSound('fail', soundEnabled)
+      onGameOver(scoreRef.current)
       return
     }
 
-    if (s.playerSeq.length === s.sequence.length) {
-      s.score++
-      setScore(s.score)
-      onScore(s.score)
-      s.phase = 'correct'
+    if (inputRef.current.length === sequenceRef.current.length) {
+      const roundPoints = sequenceRef.current.length * 10
+      scoreRef.current += roundPoints
+      setScore(scoreRef.current)
+      onScore(scoreRef.current)
+      playSound('success', soundEnabled)
+      phaseRef.current = 'correct'
       setPhase('correct')
-      clearTimeout(s.timerId)
-      s.timerId = setTimeout(() => addStep(), 600)
+      const runId = runRef.current
+      wait(() => addRound(runId), reducedMotion ? 180 : 520)
     }
-  }, [addStep, onScore, onGameOver])
+  }, [addRound, onGameOver, onScore, soundEnabled, wait])
 
   useEffect(() => {
+    runRef.current += 1
+    clearTimeout(timerRef.current)
     if (isActive) {
-      startGame()
-    } else {
-      const s = stateRef.current
-      clearTimeout(s.timerId)
-      s.phase = 'showing'
+      sequenceRef.current = []
+      inputRef.current = []
+      scoreRef.current = 0
+      setScore(0)
+      setInputCount(0)
+      addRound(runRef.current)
     }
     return () => {
-      const s = stateRef.current
-      clearTimeout(s.timerId)
+      runRef.current += 1
+      clearTimeout(timerRef.current)
     }
-  }, [isActive, startGame])
-
-  const padSize = 'min(38vw, 38vh)'
+  }, [addRound, isActive])
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 0,
-      touchAction: 'none',
-    }}>
-      {/* Score */}
-      <div style={{
-        fontFamily: 'Orbitron, monospace',
-        fontSize: 'clamp(28px, 8vw, 52px)',
-        fontWeight: 700,
-        color: '#f0f0f5',
-        marginBottom: '5vh',
-        textShadow: '0 0 20px #c8ff00',
-      }}>
-        {score}
+    <div className="echo-game">
+      <div className="echo-game__burst" aria-hidden="true" />
+      <div className="echo-game__header">
+        <span>ROUND {String(sequenceRef.current.length).padStart(2, '0')}</span>
+        <strong>{score}</strong>
       </div>
-
-      {/* Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px',
-        padding: '8px',
-      }}>
-        {[0, 1, 2, 3].map(i => {
-          const isLit = lit === i || inputLit === i
+      <div className="echo-game__grid">
+        {PAD_COLORS.map((color, index) => {
+          const active = lit === index
           return (
             <button
-              key={i}
-              onPointerDown={e => { e.preventDefault(); handlePad(i) }}
-              style={{
-                width: padSize,
-                height: padSize,
-                maxWidth: '160px',
-                maxHeight: '160px',
-                background: isLit ? PAD_COLORS[i] : '#111118',
-                border: `3px solid ${PAD_COLORS[i]}`,
-                borderRadius: '20px',
-                cursor: 'pointer',
-                boxShadow: isLit
-                  ? `0 0 40px ${PAD_GLOW[i]}, inset 0 0 20px ${PAD_GLOW[i]}`
-                  : `0 0 12px ${PAD_GLOW[i]}44`,
-                transition: 'all 0.08s ease',
-                transform: isLit ? 'scale(0.95)' : 'scale(1)',
-                touchAction: 'none',
-              }}
-            />
+              key={color}
+              className={active ? 'is-lit' : ''}
+              onPointerUp={() => handlePad(index)}
+              style={{ '--pad': color } as React.CSSProperties}
+              aria-label={`Echo pad ${PAD_LABELS[index]}`}
+            >
+              <span>{PAD_LABELS[index]}</span>
+            </button>
           )
         })}
       </div>
-
-      <div style={{
-        marginTop: '5vh',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: 'clamp(12px, 3.5vw, 16px)',
-        color: phase === 'showing' ? '#c8ff00' : phase === 'correct' ? '#00e5ff' : '#6b6b7a',
-        fontWeight: 500,
-        letterSpacing: '0.05em',
-        textTransform: 'uppercase',
-        textShadow: phase === 'showing' ? '0 0 12px #c8ff00' : 'none',
-        transition: 'color 0.2s',
-      }}>
-        {phase === 'showing' ? 'Watch...' : phase === 'input' ? 'Your turn' : phase === 'correct' ? '✓ Nice!' : ''}
-      </div>
-
-      {/* Sequence length indicator */}
-      <div style={{
-        marginTop: '16px',
-        display: 'flex',
-        gap: '6px',
-      }}>
-        {stateRef.current.sequence.map((_, i) => (
-          <div key={i} style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: i < stateRef.current.playerSeq.length ? '#c8ff00' : '#2a2a3a',
-            boxShadow: i < stateRef.current.playerSeq.length ? '0 0 6px #c8ff00' : 'none',
-            transition: 'all 0.15s',
-          }} />
-        ))}
+      <div className={`echo-game__status is-${phase}`}>
+        {phase === 'showing' && 'WATCH THE SIGNAL'}
+        {phase === 'input' && `YOUR TURN · ${inputCount}/${sequenceRef.current.length}`}
+        {phase === 'correct' && 'SEQUENCE LOCKED!'}
+        {phase === 'fail' && 'SIGNAL LOST'}
       </div>
     </div>
   )
