@@ -56,6 +56,9 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
       'lane-shift': 8,
       'echo-grid': 100,
       'gravity-flip': 8,
+      'micro-mayhem': 250,
+      'cannon-dash': 150,
+      'rail-blaster': 250,
     }
     const level = Math.floor(s / thresholds[game.slug])
     if (level > milestoneLevel.current) {
