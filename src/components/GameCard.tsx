@@ -118,7 +118,6 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           score={gameOver ? finalScore : score}
           personalBest={personalBest}
           accentColor={game.accentColor}
-          rivalScore={rivalEntry?.score}
         />
       )}
 
@@ -148,6 +147,9 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
 
       {challengeScore > 0 && !gameOver && !showLeaderboard && (
         <div className="challenge-target">CHALLENGE · BEAT {challengeScore}</div>
+      )}
+      {rivalEntry && !gameOver && !showLeaderboard && (
+        <div className="rival-target">NEXT RIVAL · SCORE {rivalEntry.score + 1}</div>
       )}
       {milestone && !gameOver && <div className="milestone-burst">{milestone}</div>}
 

@@ -382,6 +382,20 @@ button { font: inherit; }
   font: 900 10px/1 'Archivo Black', sans-serif;
   letter-spacing: .04em;
 }
+.rival-target {
+  position: absolute;
+  z-index: 26;
+  left: 16px;
+  bottom: max(calc(env(safe-area-inset-bottom) + 129px), 141px);
+  background: var(--blue);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--lime);
+  padding: 6px 8px 5px;
+  pointer-events: none;
+  font: 700 8px/1 'DM Mono', monospace;
+  letter-spacing: .04em;
+}
 .milestone-burst {
   position: absolute;
   z-index: 29;
@@ -440,6 +454,27 @@ button { font: inherit; }
   flex-direction: column;
   gap: 10px;
 }
+.creator-chip {
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--paper);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+.creator-chip span {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--blue);
+  border: 3px solid var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: 900 12px/1 'Archivo Black', sans-serif;
+}
+.creator-chip strong { font: 700 7px/1 'DM Mono', monospace; }
 .rail-button {
   display: flex;
   flex-direction: column;
@@ -553,6 +588,12 @@ button { font: inherit; }
   color: var(--blue);
   font: 900 12px/1 'Archivo Black', sans-serif;
 }
+.game-over__percentile {
+  margin: -10px 0 18px;
+  color: var(--blue);
+  font: 900 11px/1 'Archivo Black', sans-serif;
+}
+.game-over__percentile + .game-over__challenge { margin-top: -8px; }
 .game-over__stats > div { display: flex; flex-direction: column; gap: 3px; }
 .game-over__stats > div + div { border-left: 2px solid var(--ink); }
 .game-over__stats strong { font: 900 20px/1 'Archivo Black', sans-serif; }
