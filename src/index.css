@@ -112,6 +112,7 @@ button { font: inherit; }
   overflow: hidden;
   background: var(--blue);
 }
+.game-card.is-impact { animation: impact-shake .18s linear; }
 .game-card__texture {
   position: absolute;
   inset: 0;
@@ -301,6 +302,24 @@ button { font: inherit; }
   font: 900 10px/1 'Archivo Black', sans-serif;
   letter-spacing: .04em;
 }
+.milestone-burst {
+  position: absolute;
+  z-index: 29;
+  left: 50%;
+  top: 39%;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  width: max-content;
+  max-width: 88%;
+  padding: 10px 14px 8px;
+  background: var(--lime);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--orange);
+  pointer-events: none;
+  font: 900 clamp(22px, 8vw, 38px)/.9 'Archivo Black', sans-serif;
+  letter-spacing: -.05em;
+  animation: milestone-in .2s cubic-bezier(.2,1.4,.4,1);
+}
 .game-info__kicker {
   display: inline-block;
   background: var(--lime);
@@ -449,6 +468,11 @@ button { font: inherit; }
   margin: 24px 0;
   padding: 13px 0;
 }
+.game-over__challenge {
+  margin: -10px 0 18px;
+  color: var(--blue);
+  font: 900 12px/1 'Archivo Black', sans-serif;
+}
 .game-over__stats > div { display: flex; flex-direction: column; gap: 3px; }
 .game-over__stats > div + div { border-left: 2px solid var(--ink); }
 .game-over__stats strong { font: 900 20px/1 'Archivo Black', sans-serif; }
@@ -510,6 +534,14 @@ button { font: inherit; }
 @keyframes card-in { from { opacity: 0; transform: scale(.85) rotate(4deg); } }
 @keyframes sheet-in { from { transform: translateY(100%); } }
 @keyframes score-pop { 50% { transform: scale(1.18) rotate(-2deg); } }
+@keyframes milestone-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.35) rotate(8deg); }
+}
+@keyframes impact-shake {
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
 
 @media (min-width: 760px) {
   .feed-stage { grid-template-columns: minmax(380px, 650px) minmax(360px, 430px); gap: clamp(28px, 6vw, 96px); padding: 28px 7vw; }

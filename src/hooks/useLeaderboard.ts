@@ -4,6 +4,7 @@ import { LeaderboardData, LeaderboardEntry } from '../types/game'
 export function useLeaderboard(gameSlug: string, deviceId: string) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [playerEntry, setPlayerEntry] = useState<LeaderboardEntry | null>(null)
+  const [rivalEntry, setRivalEntry] = useState<LeaderboardEntry | null>(null)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,6 +19,7 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
       const data = await response.json() as LeaderboardData
       setEntries(data.entries)
       setPlayerEntry(data.playerEntry)
+      setRivalEntry(data.rivalEntry)
       setTotalPlayers(data.totalPlayers)
     } catch {
       setError('Ranks are offline. Your best is still saved here.')
@@ -30,12 +32,16 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
     fetchLeaderboard()
   }, [fetchLeaderboard])
 
-  const submitScore = useCallback(async (score: number) => {
+  const submitScore = useCallback(async (score: number, runToken: string) => {
+    if (!runToken) {
+      setError('Score saved locally. World ranks are offline.')
+      return false
+    }
     try {
       const response = await window.fetch('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameSlug, score, deviceId }),
+        body: JSON.stringify({ gameSlug, score, deviceId, runToken }),
       })
       if (!response.ok) throw new Error('Score rejected')
       await fetchLeaderboard()
@@ -49,6 +55,7 @@ export function useLeaderboard(gameSlug: string, deviceId: string) {
   return {
     entries,
     playerEntry,
+    rivalEntry,
     totalPlayers,
     loading,
     error,

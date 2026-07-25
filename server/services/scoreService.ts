@@ -6,6 +6,7 @@ export interface Score {
   deviceId: string
   score: number
   timestamp: number
+  runId: string
 }
 
 export interface LeaderboardEntry {
@@ -17,11 +18,12 @@ export interface LeaderboardEntry {
 export interface LeaderboardData {
   entries: LeaderboardEntry[]
   playerEntry: LeaderboardEntry | null
+  rivalEntry: LeaderboardEntry | null
   totalPlayers: number
 }
 
 export interface ScoreService {
-  saveScore(gameSlug: string, deviceId: string, score: number): Promise<Score>
+  saveScore(gameSlug: string, deviceId: string, score: number, runId: string): Promise<Score>
   getLeaderboard(gameSlug: string, limit?: number, deviceId?: string): Promise<LeaderboardData>
 }
 
@@ -29,14 +31,18 @@ export interface ScoreService {
 class InMemoryScoreService implements ScoreService {
   private scores: Score[] = []
   private nextId = 1
+  private usedRuns = new Set<string>()
 
-  async saveScore(gameSlug: string, deviceId: string, score: number): Promise<Score> {
+  async saveScore(gameSlug: string, deviceId: string, score: number, runId: string): Promise<Score> {
+    if (this.usedRuns.has(runId)) throw new Error('Run already submitted')
+    this.usedRuns.add(runId)
     const entry: Score = {
       id: this.nextId++,
       gameSlug,
       deviceId,
       score,
       timestamp: Date.now(),
+      runId,
     }
     this.scores.push(entry)
     return entry
@@ -55,6 +61,11 @@ class InMemoryScoreService implements ScoreService {
     return {
       entries: ranked.slice(0, limit),
       playerEntry: deviceId ? ranked.find(entry => entry.deviceId === deviceId) ?? null : null,
+      rivalEntry: (() => {
+        if (!deviceId) return null
+        const playerIndex = ranked.findIndex(entry => entry.deviceId === deviceId)
+        return playerIndex > 0 ? ranked[playerIndex - 1] : null
+      })(),
       totalPlayers: ranked.length,
     }
   }
@@ -64,12 +75,12 @@ class InMemoryScoreService implements ScoreService {
 class PgScoreService implements ScoreService {
   constructor(private pool: Pool) {}
 
-  async saveScore(gameSlug: string, deviceId: string, score: number): Promise<Score> {
+  async saveScore(gameSlug: string, deviceId: string, score: number, runId: string): Promise<Score> {
     const res = await this.pool.query<{
-      id: number; game_slug: string; device_id: string; score: number; timestamp: string
+      id: number; game_slug: string; device_id: string; score: number; timestamp: string; run_id: string
     }>(
-      'INSERT INTO scores(game_slug, device_id, score, timestamp) VALUES($1, $2, $3, $4) RETURNING *',
-      [gameSlug, deviceId, score, Date.now()]
+      'INSERT INTO scores(game_slug, device_id, score, timestamp, run_id) VALUES($1, $2, $3, $4, $5) RETURNING *',
+      [gameSlug, deviceId, score, Date.now(), runId]
     )
     const row = res.rows[0]
     return {
@@ -78,6 +89,7 @@ class PgScoreService implements ScoreService {
       deviceId: row.device_id,
       score: row.score,
       timestamp: Number(row.timestamp),
+      runId: row.run_id,
     }
   }
 
@@ -97,7 +109,9 @@ class PgScoreService implements ScoreService {
          FROM best
        )
        SELECT * FROM ranked
-       WHERE rank <= $2 OR device_id = $3
+       WHERE rank <= $2
+          OR device_id = $3
+          OR rank = (SELECT rank - 1 FROM ranked WHERE device_id = $3)
        ORDER BY rank`,
       [gameSlug, limit, deviceId ?? '']
     )
@@ -109,6 +123,12 @@ class PgScoreService implements ScoreService {
     return {
       entries: ranked.filter(entry => entry.rank <= limit),
       playerEntry: deviceId ? ranked.find(entry => entry.deviceId === deviceId) ?? null : null,
+      rivalEntry: deviceId
+        ? ranked
+            .filter(entry => entry.deviceId !== deviceId)
+            .sort((a, b) => b.rank - a.rank)
+            .find(entry => entry.rank < (ranked.find(item => item.deviceId === deviceId)?.rank ?? 0)) ?? null
+        : null,
       totalPlayers: Number(res.rows[0]?.total_players ?? 0),
     }
   }
@@ -116,6 +136,11 @@ class PgScoreService implements ScoreService {
 
 // --- Service factory (singleton) ---
 let _service: ScoreService | null = null
+let _storageMode: 'postgres' | 'memory' = 'memory'
+
+export function getScoreStorageMode() {
+  return _storageMode
+}
 
 export async function getScoreService(): Promise<ScoreService> {
   if (_service) return _service
@@ -126,7 +151,21 @@ export async function getScoreService(): Promise<ScoreService> {
       const pool = new Pool({ connectionString: url })
       // Verify connectivity with a lightweight query
       await pool.query('SELECT 1')
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS scores (
+          id SERIAL PRIMARY KEY,
+          game_slug TEXT NOT NULL,
+          device_id TEXT NOT NULL,
+          score INTEGER NOT NULL CHECK (score >= 0 AND score <= 9999999),
+          timestamp BIGINT NOT NULL
+        )
+      `)
+      await pool.query('ALTER TABLE scores ADD COLUMN IF NOT EXISTS run_id TEXT')
+      await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_scores_run_id ON scores(run_id) WHERE run_id IS NOT NULL')
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_scores_slug ON scores(game_slug)')
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_scores_device ON scores(game_slug, device_id)')
       _service = new PgScoreService(pool)
+      _storageMode = 'postgres'
       console.log('[scores] Using PostgreSQL score service')
       return _service
     } catch (err) {
@@ -137,5 +176,6 @@ export async function getScoreService(): Promise<ScoreService> {
   }
 
   _service = new InMemoryScoreService()
+  _storageMode = 'memory'
   return _service
 }

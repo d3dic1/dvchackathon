@@ -3,6 +3,7 @@ import { GameMeta } from '../types/game'
 import { usePersonalBest } from '../hooks/usePersonalBest'
 import { useLeaderboard } from '../hooks/useLeaderboard'
 import { getDeviceId } from '../utils/deviceId'
+import { useRunSession } from '../hooks/useRunSession'
 import ScoreHUD from './ScoreHUD'
 import GameInfo from './GameInfo'
 import GameOver from './GameOver'
@@ -25,11 +26,15 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [liked, setLiked] = useState(false)
   const [key, setKey] = useState(0) // reset key for game component
+  const [milestone, setMilestone] = useState('')
+  const milestoneLevel = useRef(0)
+  const milestoneTimer = useRef<ReturnType<typeof setTimeout>>()
   const deviceId = useRef(getDeviceId()).current
 
   const { personalBest, updatePersonalBest } = usePersonalBest(game.slug)
-  const { entries, playerEntry, totalPlayers, loading, error, submitScore, refresh } =
+  const { entries, playerEntry, rivalEntry, totalPlayers, loading, error, submitScore, refresh } =
     useLeaderboard(game.slug, deviceId)
+  const { startRun, getRunToken } = useRunSession(game.slug, deviceId, isActive)
 
   // When card becomes active, reset game state
   useEffect(() => {
@@ -37,26 +42,44 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
       setScore(0)
       setGameOver(false)
       setFinalScore(0)
+      setMilestone('')
+      milestoneLevel.current = 0
     }
   }, [isActive])
 
+  useEffect(() => () => clearTimeout(milestoneTimer.current), [])
+
   const handleScore = useCallback((s: number) => {
     setScore(s)
-  }, [])
+    const thresholds: Record<string, number> = {
+      'orbit-lock': 50,
+      'lane-shift': 8,
+      'echo-grid': 100,
+      'gravity-flip': 8,
+    }
+    const level = Math.floor(s / thresholds[game.slug])
+    if (level > milestoneLevel.current) {
+      milestoneLevel.current = level
+      setMilestone(level >= 3 ? 'UNSTOPPABLE!' : level >= 2 ? 'ON FIRE!' : 'HEATING UP!')
+      clearTimeout(milestoneTimer.current)
+      milestoneTimer.current = setTimeout(() => setMilestone(''), 850)
+    }
+  }, [game.slug])
 
   const handleGameOver = useCallback((s: number) => {
     setFinalScore(s)
     setGameOver(true)
     updatePersonalBest(s)
-    void submitScore(s)
-  }, [updatePersonalBest, submitScore])
+    void submitScore(s, getRunToken())
+  }, [getRunToken, updatePersonalBest, submitScore])
 
   const handlePlayAgain = useCallback(() => {
     setScore(0)
     setGameOver(false)
     setFinalScore(0)
     setKey(k => k + 1)
-  }, [])
+    void startRun()
+  }, [startRun])
 
   const handleLeaderboard = useCallback(() => {
     refresh()
@@ -72,7 +95,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   })()
 
   return (
-    <article className="game-card" data-game={game.slug}>
+    <article className={`game-card ${milestone ? 'is-impact' : ''}`} data-game={game.slug}>
       <div className="game-card__texture" />
       <div className="game-card__number" aria-hidden="true">{String(position).padStart(2, '0')}</div>
       <div className="game-card__era" aria-hidden="true">LIVING ROOM CLASSIC · HARD MODE</div>
@@ -92,6 +115,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           score={gameOver ? finalScore : score}
           personalBest={personalBest}
           accentColor={game.accentColor}
+          rivalScore={rivalEntry?.score}
         />
       )}
 
@@ -122,6 +146,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
       {challengeScore > 0 && !gameOver && !showLeaderboard && (
         <div className="challenge-target">CHALLENGE · BEAT {challengeScore}</div>
       )}
+      {milestone && !gameOver && <div className="milestone-burst">{milestone}</div>}
 
       {/* Game over overlay */}
       {gameOver && !showLeaderboard && (
@@ -133,6 +158,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           accentColor={game.accentColor}
           rank={playerEntry?.rank}
           totalPlayers={totalPlayers}
+          challengeScore={challengeScore}
         />
       )}
 

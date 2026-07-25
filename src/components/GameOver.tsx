@@ -8,9 +8,13 @@ interface Props {
   accentColor: string
   rank?: number
   totalPlayers: number
+  challengeScore?: number
 }
 
-export default function GameOver({ score, personalBest, isNewBest, onPlayAgain, accentColor, rank, totalPlayers }: Props) {
+export default function GameOver({
+  score, personalBest, isNewBest, onPlayAgain, accentColor, rank, totalPlayers, challengeScore,
+}: Props) {
+  const challengeWon = Boolean(challengeScore && score > challengeScore)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -21,15 +25,18 @@ export default function GameOver({ score, personalBest, isNewBest, onPlayAgain, 
   return (
     <div className="game-over" onClick={event => event.stopPropagation()}>
       <div className="game-over__card" style={{ '--accent': accentColor } as React.CSSProperties}>
-        <div className="game-over__tape">{isNewBest ? 'NEW HIGH SCORE' : 'RUN COMPLETE'}</div>
+        <div className="game-over__tape">
+          {challengeWon ? 'CHALLENGE CRUSHED' : isNewBest ? 'NEW HIGH SCORE' : 'RUN COMPLETE'}
+        </div>
         <div className="game-over__score">{score}</div>
         <div className="game-over__stats">
           <Stat label="Your best" value={personalBest} />
           <Stat
             label={rank && totalPlayers ? `Top ${Math.max(1, Math.ceil(rank / totalPlayers * 100))}%` : 'World rank'}
-            value={rank ? `#${rank}` : 'SYNCING'}
+            value={score === 0 ? 'UNRANKED' : rank ? `#${rank}` : 'SYNCING'}
           />
         </div>
+        {challengeWon && <div className="game-over__challenge">YOU BEAT {challengeScore} BY {score - (challengeScore ?? 0)}</div>}
         <button ref={buttonRef} className="game-over__button" onClick={onPlayAgain}>
           PLAY IT AGAIN <span>↗</span>
         </button>

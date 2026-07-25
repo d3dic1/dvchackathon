@@ -41,9 +41,10 @@ npm start       # → Express on port 5000 (serves API + static files)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/scores` | Submit a score `{ gameSlug, deviceId, score }` |
-| `GET` | `/api/leaderboard/:gameSlug` | Per-game top-10 leaderboard |
-| `GET` | `/api/health` | Liveness check |
+| `POST` | `/api/runs` | Issue a signed, single-run score token |
+| `POST` | `/api/scores` | Submit a validated run `{ gameSlug, deviceId, score, runToken }` |
+| `GET` | `/api/leaderboard/:gameSlug` | Top 10, personal rank, rival and player count |
+| `GET` | `/api/health` | Liveness and persistence status |
 
 ## Database schema
 
@@ -53,7 +54,8 @@ CREATE TABLE scores (
   game_slug TEXT    NOT NULL,
   device_id TEXT    NOT NULL,
   score     INTEGER NOT NULL CHECK (score >= 0 AND score <= 9999999),
-  timestamp BIGINT  NOT NULL
+  timestamp BIGINT  NOT NULL,
+  run_id    TEXT    UNIQUE
 );
 CREATE INDEX idx_scores_slug   ON scores(game_slug);
 CREATE INDEX idx_scores_device ON scores(game_slug, device_id);

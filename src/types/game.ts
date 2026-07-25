@@ -30,5 +30,6 @@ export interface LeaderboardEntry {
 export interface LeaderboardData {
   entries: LeaderboardEntry[];
   playerEntry: LeaderboardEntry | null;
+  rivalEntry: LeaderboardEntry | null;
   totalPlayers: number;
 }

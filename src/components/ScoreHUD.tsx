@@ -2,9 +2,10 @@ interface Props {
   score: number
   personalBest: number
   accentColor: string
+  rivalScore?: number
 }
 
-export default function ScoreHUD({ score, personalBest, accentColor }: Props) {
+export default function ScoreHUD({ score, personalBest, accentColor, rivalScore }: Props) {
   return (
     <div className="score-hud">
       <div className="score-hud__block">
@@ -13,9 +14,9 @@ export default function ScoreHUD({ score, personalBest, accentColor }: Props) {
       </div>
       <div className="score-hud__block score-hud__block--best">
         <div className="score-hud__best" style={{ color: personalBest ? accentColor : undefined }}>
-          {personalBest}
+          {rivalScore ?? personalBest}
         </div>
-        <div className="score-hud__label">Personal best</div>
+        <div className="score-hud__label">{rivalScore ? 'Next rival' : 'Personal best'}</div>
       </div>
     </div>
   )

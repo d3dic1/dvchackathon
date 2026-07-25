@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { getScoreService } from '../services/scoreService'
+import { verifyRunToken } from '../runSecurity'
 
 const router = Router()
 
@@ -15,6 +16,7 @@ const PostScoreSchema = z.object({
   gameSlug: z.enum(['orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip']),
   deviceId: z.string().min(8).max(128),
   score: z.number().int().min(0).max(9_999_999),
+  runToken: z.string().min(32).max(2048),
 }).superRefine(({ gameSlug, score }, context) => {
   if (score > SCORE_LIMITS[gameSlug]) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['score'], message: 'Score exceeds game limit' })
@@ -27,12 +29,17 @@ router.post('/', async (req: Request, res: Response) => {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() })
   }
-  const { gameSlug, deviceId, score } = parsed.data
+  const { gameSlug, deviceId, score, runToken } = parsed.data
+  const run = verifyRunToken(runToken, gameSlug, deviceId)
+  if (!run) return res.status(403).json({ error: 'Invalid or expired run' })
   try {
     const service = await getScoreService()
-    const entry = await service.saveScore(gameSlug, deviceId, score)
+    const entry = await service.saveScore(gameSlug, deviceId, score, run.runId)
     return res.status(201).json(entry)
   } catch (err) {
+    if ((err as Error).message.includes('already submitted') || (err as { code?: string }).code === '23505') {
+      return res.status(409).json({ error: 'Run already submitted' })
+    }
     console.error('[POST /api/scores]', err)
     return res.status(500).json({ error: 'Internal server error' })
   }
