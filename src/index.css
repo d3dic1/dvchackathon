@@ -73,6 +73,22 @@ button { font: inherit; }
   scroll-snap-align: start;
   scroll-snap-stop: always;
   position: relative;
+  isolation: isolate;
+}
+.feed__page.is-active::after {
+  content: '';
+  position: absolute;
+  z-index: 34;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 46%, rgba(255,255,255,.34) 50%, transparent 54%),
+    rgba(245,231,198,.08);
+  mix-blend-mode: screen;
+  animation: channel-flash .34s ease-out both;
+}
+.feed__page.is-active {
+  animation: channel-settle .3s cubic-bezier(.2,.8,.2,1);
 }
 
 .feed-brand {
@@ -118,12 +134,33 @@ button { font: inherit; }
   box-shadow: 3px 3px 0 var(--ink);
 }
 .feed-brand__daily:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.feed-brand__daily:focus-visible,
+.rail-button:focus-visible,
+.game-over button:focus-visible,
+.leaderboard button:focus-visible,
+.gauntlet-ticket button:focus-visible,
+.judge-card button:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 3px;
+}
 .feed-brand__counter {
   background: var(--lime);
   border: 2px solid var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
   padding: 6px 9px;
   font: 500 10px/1 'DM Mono', monospace;
+}
+.feed-brand__counter::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 2px rgba(240,74,36,.2);
+  animation: live-pulse 2.2s ease-in-out infinite;
 }
 
 .game-card {
@@ -132,6 +169,26 @@ button { font: inherit; }
   position: relative;
   overflow: hidden;
   background: var(--blue);
+}
+.game-card::before,
+.game-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.game-card::before {
+  z-index: 11;
+  opacity: .16;
+  mix-blend-mode: multiply;
+  animation: ambient-drift 10s ease-in-out infinite alternate;
+}
+.game-card::after {
+  z-index: 12;
+  background:
+    linear-gradient(112deg, rgba(255,255,255,.13), transparent 25% 72%, rgba(18,18,18,.11)),
+    radial-gradient(ellipse at center, transparent 56%, rgba(18,18,18,.16) 100%);
+  box-shadow: inset 0 0 34px rgba(18,18,18,.12);
 }
 .game-card.is-impact { animation: impact-shake .18s linear; }
 .game-card__texture {
@@ -175,6 +232,32 @@ button { font: inherit; }
 .game-card[data-game="micro-mayhem"] { background: #ffdf35; }
 .game-card[data-game="cannon-dash"] { background: #7d5ed7; }
 .game-card[data-game="rail-blaster"] { background: #101d4f; }
+.game-card[data-game="orbit-lock"]::before {
+  background: repeating-conic-gradient(from 12deg at 50% 48%, transparent 0 9deg, var(--orange) 9deg 11deg);
+}
+.game-card[data-game="lane-shift"]::before {
+  background: repeating-linear-gradient(112deg, transparent 0 38px, rgba(18,18,18,.34) 38px 42px);
+}
+.game-card[data-game="echo-grid"]::before {
+  background:
+    radial-gradient(circle at 18% 24%, var(--blue) 0 5px, transparent 6px),
+    radial-gradient(circle at 84% 72%, var(--orange) 0 7px, transparent 8px);
+  background-size: 92px 92px, 128px 128px;
+}
+.game-card[data-game="gravity-flip"]::before {
+  background: repeating-linear-gradient(0deg, transparent 0 54px, rgba(255,255,255,.35) 55px 57px);
+}
+.game-card[data-game="micro-mayhem"]::before {
+  background: repeating-conic-gradient(from -8deg at 50% 48%, transparent 0 13deg, rgba(240,74,36,.55) 13deg 16deg);
+}
+.game-card[data-game="cannon-dash"]::before {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 27%, rgba(255,255,255,.35) 27.5% 28%, transparent 28.5% 42%, rgba(18,18,18,.3) 42.5% 43%, transparent 43.5%);
+}
+.game-card[data-game="rail-blaster"]::before {
+  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(120,216,255,.28) 8px 9px);
+  mix-blend-mode: screen;
+}
 
 .game-canvas {
   width: 100%;
@@ -467,6 +550,7 @@ button { font: inherit; }
   letter-spacing: .08em;
   transform: rotate(-2deg);
 }
+.feed__page.is-active .game-info__kicker { animation: sticker-pop .28s .12s both; }
 .game-info__title {
   margin-top: 5px;
   font: 900 clamp(25px, 7.5vw, 38px)/.95 'Archivo Black', sans-serif;
@@ -476,6 +560,7 @@ button { font: inherit; }
   paint-order: stroke fill;
   filter: drop-shadow(3px 3px 0 var(--ink));
 }
+.feed__page.is-active .game-info__title { animation: title-arrive .3s .06s both; }
 .game-info__rule {
   display: inline-block;
   margin-top: 8px;
@@ -570,6 +655,12 @@ button { font: inherit; }
   pointer-events: none;
   font: 500 8px/1 'DM Mono', monospace;
   letter-spacing: .08em;
+}
+.swipe-cue span {
+  padding: 5px 7px 4px;
+  background: rgba(18,18,18,.44);
+  border: 1px solid rgba(245,231,198,.45);
+  backdrop-filter: blur(3px);
 }
 .swipe-cue i {
   width: 14px;
@@ -1043,6 +1134,10 @@ button { font: inherit; }
   font: 700 8px/1 'DM Mono', monospace;
 }
 
+@media (hover: hover) {
+  .rail-button:hover .rail-button__icon { background: var(--lime); }
+}
+
 @keyframes nudge { 0%,100% { transform: translateY(3px) rotate(-45deg); } 50% { transform: translateY(-3px) rotate(-45deg); } }
 @keyframes slow-spin { to { transform: rotate(1turn); } }
 @keyframes card-in { from { opacity: 0; transform: scale(.85) rotate(4deg); } }
@@ -1055,6 +1150,30 @@ button { font: inherit; }
   25% { transform: translateX(-3px); }
   50% { transform: translateX(3px); }
   75% { transform: translateX(-2px); }
+}
+@keyframes channel-flash {
+  from { opacity: .7; transform: translateX(-22%); }
+  to { opacity: 0; transform: translateX(22%); }
+}
+@keyframes channel-settle {
+  from { transform: scale(1.012); filter: saturate(.82) contrast(1.08); }
+  to { transform: scale(1); filter: saturate(1) contrast(1); }
+}
+@keyframes ambient-drift {
+  from { transform: translate3d(-.6%, -.4%, 0) scale(1.02); }
+  to { transform: translate3d(.6%, .4%, 0) scale(1.02); }
+}
+@keyframes sticker-pop {
+  from { opacity: 0; transform: translateY(7px) rotate(3deg) scale(.88); }
+  to { opacity: 1; transform: translateY(0) rotate(-2deg) scale(1); }
+}
+@keyframes title-arrive {
+  from { opacity: 0; transform: translateX(-12px) rotate(-1deg); }
+  to { opacity: 1; transform: translateX(0) rotate(0); }
+}
+@keyframes live-pulse {
+  0%, 100% { transform: scale(.8); opacity: .62; }
+  50% { transform: scale(1); opacity: 1; }
 }
 @keyframes fuse-burn { to { transform: scaleX(0); } }
 @keyframes micro-pop { 50% { transform: rotate(2deg) scale(1.05); } }

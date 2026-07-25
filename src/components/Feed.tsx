@@ -216,8 +216,9 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
             const isCurrentGauntletCard = belongsToGauntlet && index === gauntletStage
             return (
               <div
-                className="feed__page"
+                className={`feed__page ${index === activeIndex ? 'is-active' : ''}`}
                 data-index={index}
+                data-game={game.slug}
                 key={`${game.slug}-${index}`}
               >
                 {visible && (
