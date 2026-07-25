@@ -11,6 +11,8 @@ import GameOver from './GameOver'
 import SocialRail from './SocialRail'
 import LeaderboardPanel from './LeaderboardPanel'
 import ClaimRankSheet from './ClaimRankSheet'
+import { shareChallenge } from '../utils/shareChallenge'
+import { playSound } from '../utils/audio'
 
 interface Props {
   game: GameMeta
@@ -35,17 +37,20 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const deviceId = useRef(getDeviceId()).current
 
   const { personalBest, updatePersonalBest } = usePersonalBest(game.slug)
-  const { isSignedIn, getToken } = useFlickcadeAuth()
-  const { entries, playerEntry, rivalEntry, totalPlayers, myPlayerId, loading, error, submitScore, refresh } =
+  const { isSignedIn, displayName, getToken } = useFlickcadeAuth()
+  const {
+    entries, playerEntry, rivalEntry, totalPlayers, myPlayerId, allTimeBest, period, setPeriod,
+    pendingScores, loading, error, submitScore, refresh,
+  } =
     useLeaderboard(game.slug, deviceId, getToken)
   const { startRun, getRunToken } = useRunSession(game.slug, deviceId, isActive)
 
   // Seed local personal-best from server so signed-in users see cross-device best immediately
   useEffect(() => {
-    if (playerEntry && playerEntry.score > 0) {
-      updatePersonalBest(playerEntry.score)
+    if (allTimeBest > 0) {
+      updatePersonalBest(allTimeBest)
     }
-  }, [playerEntry, updatePersonalBest])
+  }, [allTimeBest, updatePersonalBest])
 
   useEffect(() => {
     if (isActive) {
@@ -81,17 +86,21 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     if (level > milestoneLevel.current) {
       milestoneLevel.current = level
       setMilestone(level >= 3 ? 'UNSTOPPABLE!' : level >= 2 ? 'ON FIRE!' : 'HEATING UP!')
+      playSound('milestone', soundEnabled)
       clearTimeout(milestoneTimer.current)
       milestoneTimer.current = setTimeout(() => setMilestone(''), 850)
     }
-  }, [game.slug])
+  }, [game.slug, soundEnabled])
 
   const handleGameOver = useCallback((s: number) => {
     setFinalScore(s)
     setGameOver(true)
     updatePersonalBest(s)
     void submitScore(s, getRunToken())
-  }, [getRunToken, updatePersonalBest, submitScore])
+    const params = new URLSearchParams(window.location.search)
+    const challengeTarget = params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
+    if (challengeTarget > 0 && s > challengeTarget) playSound('challenge', soundEnabled)
+  }, [game.slug, getRunToken, soundEnabled, updatePersonalBest, submitScore])
 
   const handlePlayAgain = useCallback(() => {
     setScore(0)
@@ -112,6 +121,10 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const challengeScore = (() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
+  })()
+  const challengeFrom = (() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('game') === game.slug ? params.get('from') : null
   })()
 
   // ClaimRankSheet: show only when Clerk is configured, run is over, score > 0, not signed in, not dismissed
@@ -155,16 +168,28 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           gameSlug={game.slug}
           gameTitle={game.title}
           score={gameOver ? finalScore : score}
+          challenger={displayName}
         />
       )}
 
       {challengeScore > 0 && !gameOver && !showLeaderboard && (
-        <div className="challenge-target">CHALLENGE · BEAT {challengeScore}</div>
+        <div className="challenge-target">
+          {challengeFrom ? `${challengeFrom.toUpperCase()} SAYS · ` : 'CHALLENGE · '}BEAT {challengeScore}
+        </div>
       )}
       {rivalEntry && !gameOver && !showLeaderboard && (
-        <div className="rival-target">NEXT RIVAL · SCORE {rivalEntry.score + 1}</div>
+        <div className="rival-target">
+          <span>NEXT RIVAL · {rivalEntry.score + 1}</span>
+          <div className="rival-target__meter">
+            <i style={{ width: `${Math.min(100, score / (rivalEntry.score + 1) * 100)}%` }} />
+            <b aria-hidden="true">◆</b>
+          </div>
+        </div>
       )}
       {milestone && !gameOver && <div className="milestone-burst">{milestone}</div>}
+      {pendingScores > 0 && !showLeaderboard && (
+        <div className="sync-badge">OFFLINE SCORE SAVED · {pendingScores} TO SYNC</div>
+      )}
 
       {gameOver && !showLeaderboard && (
         <GameOver
@@ -176,6 +201,13 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           rank={playerEntry?.rank}
           totalPlayers={totalPlayers}
           challengeScore={challengeScore}
+          onRevenge={() => void shareChallenge({
+            gameSlug: game.slug,
+            gameTitle: game.title,
+            score: finalScore,
+            challenger: displayName,
+            revenge: true,
+          })}
         />
       )}
 
@@ -201,6 +233,8 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           playerEntry={playerEntry}
           totalPlayers={totalPlayers}
           error={error}
+          period={period}
+          onPeriodChange={setPeriod}
         />
       )}
     </article>

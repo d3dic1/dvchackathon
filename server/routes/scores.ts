@@ -63,9 +63,13 @@ router.get('/:gameSlug', async (req: Request, res: Response) => {
   }
   const limit = Math.min(parseInt(String(req.query.limit ?? '10'), 10) || 10, 100)
   const deviceId = typeof req.query.deviceId === 'string' ? req.query.deviceId.slice(0, 128) : undefined
+  const period = req.query.period === 'today' ? 'today' : 'all'
+  const since = period === 'today'
+    ? new Date(new Date().setUTCHours(0, 0, 0, 0)).getTime()
+    : undefined
   try {
     const service = await getScoreService()
-    const data = await service.getLeaderboard(gameSlug, limit, deviceId)
+    const data = await service.getLeaderboard(gameSlug, limit, deviceId, req.auth?.userId, since)
     return res.json(data)
   } catch (err) {
     console.error('[GET /api/leaderboard]', err)

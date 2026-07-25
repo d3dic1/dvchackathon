@@ -11,10 +11,13 @@ interface Props {
   playerEntry: LeaderboardEntry | null
   totalPlayers: number
   error: string | null
+  period: 'today' | 'all'
+  onPeriodChange: (period: 'today' | 'all') => void
 }
 
 export default function LeaderboardPanel({
   entries, loading, onClose, accentColor, gameTitle, myPlayerId, playerEntry, totalPlayers, error,
+  period, onPeriodChange,
 }: Props) {
   const playerIsVisible = entries.some(entry => entry.deviceId === myPlayerId)
 
@@ -28,6 +31,14 @@ export default function LeaderboardPanel({
           </div>
           <button onClick={onClose} aria-label="Close leaderboard">×</button>
         </header>
+        <div className="leaderboard__tabs" aria-label="Leaderboard period">
+          <button className={period === 'today' ? 'is-active' : ''} onClick={() => onPeriodChange('today')}>
+            TODAY
+          </button>
+          <button className={period === 'all' ? 'is-active' : ''} onClick={() => onPeriodChange('all')}>
+            ALL-TIME
+          </button>
+        </div>
         <div className="leaderboard__rule" style={{ background: accentColor }} />
 
         {loading && entries.length === 0 ? (
@@ -40,7 +51,7 @@ export default function LeaderboardPanel({
         ) : entries.length === 0 ? (
           <div className="leaderboard__empty">
             <strong>THE BOARD IS WIDE OPEN.</strong>
-            <span>Finish a run to take the first spot.</span>
+            <span>{period === 'today' ? 'Finish a run to own today.' : 'Finish a run to take the first spot.'}</span>
           </div>
         ) : (
           <div className="leaderboard__list">

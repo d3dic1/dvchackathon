@@ -9,10 +9,11 @@ interface Props {
   rank?: number
   totalPlayers: number
   challengeScore?: number
+  onRevenge?: () => void
 }
 
 export default function GameOver({
-  score, personalBest, isNewBest, onPlayAgain, accentColor, rank, totalPlayers, challengeScore,
+  score, personalBest, isNewBest, onPlayAgain, accentColor, rank, totalPlayers, challengeScore, onRevenge,
 }: Props) {
   const challengeWon = Boolean(challengeScore && score > challengeScore)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -42,6 +43,11 @@ export default function GameOver({
           </div>
         )}
         {challengeWon && <div className="game-over__challenge">YOU BEAT {challengeScore} BY {score - (challengeScore ?? 0)}</div>}
+        {challengeWon && onRevenge && (
+          <button className="game-over__revenge" onClick={onRevenge}>
+            SEND IT BACK <span>↗</span>
+          </button>
+        )}
         <button ref={buttonRef} className="game-over__button" onClick={onPlayAgain}>
           PLAY IT AGAIN <span>↗</span>
         </button>

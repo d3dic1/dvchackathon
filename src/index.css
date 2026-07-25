@@ -396,6 +396,28 @@ button { font: inherit; }
   font: 700 8px/1 'DM Mono', monospace;
   letter-spacing: .04em;
 }
+.rival-target span { display: block; margin-bottom: 5px; }
+.rival-target__meter {
+  position: relative;
+  width: 116px;
+  height: 7px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+}
+.rival-target__meter i {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transition: width .18s ease-out;
+}
+.rival-target__meter b {
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  color: var(--orange);
+  transform: translateY(-50%);
+  font-size: 10px;
+}
 .milestone-burst {
   position: absolute;
   z-index: 29;
@@ -594,6 +616,18 @@ button { font: inherit; }
   font: 900 11px/1 'Archivo Black', sans-serif;
 }
 .game-over__percentile + .game-over__challenge { margin-top: -8px; }
+.game-over__revenge {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px;
+  background: var(--lime);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--orange);
+  font: 900 13px/1 'Archivo Black', sans-serif;
+  cursor: pointer;
+}
+.game-over__revenge:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--orange); }
 .game-over__stats > div { display: flex; flex-direction: column; gap: 3px; }
 .game-over__stats > div + div { border-left: 2px solid var(--ink); }
 .game-over__stats strong { font: 900 20px/1 'Archivo Black', sans-serif; }
@@ -734,6 +768,24 @@ button { font: inherit; }
   box-shadow: 3px 3px 0 var(--ink); font-size: 27px; line-height: 1; cursor: pointer;
 }
 .leaderboard__rule { height: 6px; margin: 16px 0; border: 2px solid var(--ink); }
+.leaderboard__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 14px;
+}
+.leaderboard__tabs button {
+  padding: 9px 8px 7px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  font: 700 10px/1 'DM Mono', monospace;
+  cursor: pointer;
+}
+.leaderboard__tabs button.is-active {
+  background: var(--lime);
+  box-shadow: 3px 3px 0 var(--ink);
+}
 .leaderboard__list { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; max-height: 56vh; }
 .leaderboard__row {
   display: grid; grid-template-columns: 44px 1fr auto; align-items: center;
@@ -752,6 +804,21 @@ button { font: inherit; }
   text-align: center;
   font: 900 16px/1 'Archivo Black', sans-serif;
   letter-spacing: .3em;
+}
+.sync-badge {
+  position: absolute;
+  z-index: 58;
+  left: 50%;
+  top: max(calc(env(safe-area-inset-top) + 124px), 136px);
+  transform: translateX(-50%) rotate(-1deg);
+  white-space: nowrap;
+  background: var(--ink);
+  color: var(--lime);
+  border: 2px solid var(--paper);
+  box-shadow: 3px 3px 0 var(--orange);
+  padding: 7px 9px 6px;
+  pointer-events: none;
+  font: 700 8px/1 'DM Mono', monospace;
 }
 
 @keyframes nudge { 0%,100% { transform: translateY(3px) rotate(-45deg); } 50% { transform: translateY(-3px) rotate(-45deg); } }
@@ -787,6 +854,32 @@ button { font: inherit; }
   .desktop-poster__stamp { position: absolute; right: 5%; bottom: 8%; width: 112px; aspect-ratio: 1; display: grid; place-content: center; text-align: center; background: var(--lime); border: 5px solid var(--ink); border-radius: 50%; transform: rotate(9deg); font: 900 38px/.8 'Archivo Black'; }
   .desktop-poster__stamp span { font-size: 14px; }
   .desktop-poster__hint { margin-top: 46px; font: 600 14px/1.4 'DM Mono', monospace; }
+  .judge-card {
+    width: min(100%, 390px);
+    display: grid;
+    grid-template-columns: 94px 1fr;
+    gap: 14px;
+    align-items: center;
+    margin-top: 24px;
+    padding: 12px;
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    box-shadow: 7px 7px 0 var(--blue);
+    transform: rotate(1deg);
+  }
+  .judge-card img { display: block; border: 2px solid var(--ink); }
+  .judge-card div { display: flex; flex-direction: column; align-items: start; gap: 7px; }
+  .judge-card strong { font: 900 16px/.95 'Archivo Black', sans-serif; }
+  .judge-card span { font: 600 9px/1.3 'DM Mono', monospace; }
+  .judge-card button {
+    padding: 7px 8px 6px;
+    background: var(--lime);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    font: 700 8px/1 'DM Mono', monospace;
+    cursor: pointer;
+  }
   .phone-frame { max-width: 430px; max-height: min(900px, calc(100vh - 56px)); border: 6px solid var(--ink); border-radius: 26px; box-shadow: 14px 14px 0 var(--ink); }
 }
 
