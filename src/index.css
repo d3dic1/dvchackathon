@@ -820,6 +820,7 @@ button { font: inherit; }
   position: relative;
   width: min(100%, 365px);
   max-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 27px 20px 20px;
   background: var(--cream);
@@ -867,9 +868,10 @@ button { font: inherit; }
   letter-spacing: .08em;
 }
 .gauntlet-ticket h2 {
+  width: 100%;
   color: var(--blue);
-  font: 900 clamp(48px, 16vw, 70px)/.72 'Archivo Black', sans-serif;
-  letter-spacing: -.08em;
+  font: 900 clamp(36px, 13vw, 56px)/.78 'Archivo Black', sans-serif;
+  letter-spacing: -.09em;
   text-shadow: 4px 4px 0 var(--orange);
 }
 .gauntlet-ticket h2.gauntlet-ticket__result {
