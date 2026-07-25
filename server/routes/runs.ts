@@ -7,7 +7,7 @@ const router = Router()
 const StartRunSchema = z.object({
   gameSlug: z.enum([
     'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
-    'micro-mayhem', 'cannon-dash', 'rail-blaster',
+    'micro-mayhem', 'cannon-dash', 'rail-blaster', 'daily-gauntlet',
   ]),
   deviceId: z.string().min(8).max(128),
 })

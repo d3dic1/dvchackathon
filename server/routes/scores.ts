@@ -13,12 +13,13 @@ const SCORE_LIMITS = {
   'micro-mayhem': 500_000,
   'cannon-dash': 500_000,
   'rail-blaster': 500_000,
+  'daily-gauntlet': 3_000,
 } as const
 
 const PostScoreSchema = z.object({
   gameSlug: z.enum([
     'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
-    'micro-mayhem', 'cannon-dash', 'rail-blaster',
+    'micro-mayhem', 'cannon-dash', 'rail-blaster', 'daily-gauntlet',
   ]),
   deviceId: z.string().min(8).max(128),
   score: z.number().int().min(0).max(9_999_999),

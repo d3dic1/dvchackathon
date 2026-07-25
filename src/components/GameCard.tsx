@@ -13,6 +13,8 @@ import LeaderboardPanel from './LeaderboardPanel'
 import ClaimRankSheet from './ClaimRankSheet'
 import { shareChallenge } from '../utils/shareChallenge'
 import { playSound } from '../utils/audio'
+import { GauntletHud } from './GauntletHud'
+import { toGauntletPoints } from '../utils/dailyGauntlet'
 
 interface Props {
   game: GameMeta
@@ -21,9 +23,28 @@ interface Props {
   onSoundToggle: () => void
   reducedMotion: boolean
   position: number
+  gauntlet?: {
+    stage: number
+    totalStages: number
+    bankedPoints: number
+  }
+  onGauntletGameOver?: (score: number) => void
+  onGauntletContinue?: () => void
 }
 
-export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, reducedMotion, position }: Props) {
+const ignoreGauntletContinue = () => undefined
+
+export default function GameCard({
+  game,
+  isActive,
+  soundEnabled,
+  onSoundToggle,
+  reducedMotion,
+  position,
+  gauntlet,
+  onGauntletGameOver,
+  onGauntletContinue,
+}: Props) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
@@ -97,10 +118,11 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     setGameOver(true)
     updatePersonalBest(s)
     void submitScore(s, getRunToken())
+    onGauntletGameOver?.(s)
     const params = new URLSearchParams(window.location.search)
     const challengeTarget = params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
-    if (challengeTarget > 0 && s > challengeTarget) playSound('challenge', soundEnabled)
-  }, [game.slug, getRunToken, soundEnabled, updatePersonalBest, submitScore])
+    if (!gauntlet && challengeTarget > 0 && s > challengeTarget) playSound('challenge', soundEnabled)
+  }, [game.slug, gauntlet, getRunToken, onGauntletGameOver, soundEnabled, updatePersonalBest, submitScore])
 
   const handlePlayAgain = useCallback(() => {
     setScore(0)
@@ -128,7 +150,8 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   })()
 
   // ClaimRankSheet: show only when Clerk is configured, run is over, score > 0, not signed in, not dismissed
-  const showClaimSheet = CLERK_ENABLED && gameOver && finalScore > 0 && !isSignedIn && !claimDismissed && !showLeaderboard
+  const showClaimSheet = !gauntlet && CLERK_ENABLED && gameOver && finalScore > 0 && !isSignedIn && !claimDismissed && !showLeaderboard
+  const gauntletEventPoints = gauntlet ? toGauntletPoints(game.slug, finalScore) : 0
 
   return (
     <article className={`game-card ${milestone ? 'is-impact' : ''}`} data-game={game.slug}>
@@ -157,7 +180,15 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         <GameInfo title={game.title} instruction={game.instruction} accentColor={game.accentColor} />
       )}
 
-      {!showLeaderboard && (
+      {gauntlet && !showLeaderboard && (
+        <GauntletHud
+          stage={gauntlet.stage}
+          totalStages={gauntlet.totalStages}
+          bankedPoints={gauntlet.bankedPoints}
+        />
+      )}
+
+      {!gauntlet && !showLeaderboard && (
         <SocialRail
           soundEnabled={soundEnabled}
           onSoundToggle={onSoundToggle}
@@ -172,12 +203,12 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         />
       )}
 
-      {challengeScore > 0 && !gameOver && !showLeaderboard && (
+      {!gauntlet && challengeScore > 0 && !gameOver && !showLeaderboard && (
         <div className="challenge-target">
           {challengeFrom ? `${challengeFrom.toUpperCase()} SAYS · ` : 'CHALLENGE · '}BEAT {challengeScore}
         </div>
       )}
-      {rivalEntry && !gameOver && !showLeaderboard && (
+      {!gauntlet && rivalEntry && !gameOver && !showLeaderboard && (
         <div className="rival-target">
           <span>NEXT RIVAL · {rivalEntry.score + 1}</span>
           <div className="rival-target__meter">
@@ -208,6 +239,14 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
             challenger: displayName,
             revenge: true,
           })}
+          gauntlet={gauntlet ? {
+            round: gauntlet.stage + 1,
+            totalRounds: gauntlet.totalStages,
+            eventPoints: gauntletEventPoints,
+            bankedPoints: gauntlet.bankedPoints,
+            isFinal: gauntlet.stage === gauntlet.totalStages - 1,
+            onContinue: onGauntletContinue ?? ignoreGauntletContinue,
+          } : undefined}
         />
       )}
 
