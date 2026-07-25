@@ -1,47 +1,84 @@
-# Tip Tap Games
+# FLICKCADE
 
-A TikTok/Reels-style vertical swipe feed where every full-screen card is a playable one-thumb mini-game.
+Mobile-first arcade feed — four playable one-thumb games in a TikTok-style vertical scroll.
 
-## How to run
+## How to run (development)
 
-```
+```bash
 npm run dev
 ```
 
-- Frontend (Vite): http://localhost:5000
-- API (Express): http://localhost:3001
-- Vite proxies `/api` requests to Express automatically.
+- **Vite** dev server on **port 5000** (preview pane)
+- **Express** API server on **port 3001**
+- Vite proxies `/api/*` → Express automatically
+
+## How to build + run (production)
+
+```bash
+npm run build   # → dist/client/ (Vite) + dist/server/ (tsc)
+npm start       # → Express on port 5000 (serves API + static files)
+```
 
 ## Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Backend**: Express + TypeScript (tsx for dev)
-- **Storage**: In-memory by default; PostgreSQL if DATABASE_URL is set
+| Layer | Tech |
+|-------|------|
+| Frontend | React 18 + TypeScript + Vite |
+| Backend | Express + TypeScript (tsx for dev, tsc for prod) |
+| Database | Replit-managed PostgreSQL (via `pg`) |
+| Storage fallback | In-memory (when DATABASE_URL absent) |
 
 ## Games
 
-- **Orbit Lock** – Tap when the orbiting marker hits the glowing target arc
-- **Lane Shift** – Tap to switch lanes and dodge incoming barriers  
-- **Echo Grid** – Memorise and repeat a growing pad sequence
-- **Gravity Flip** – Flip between floor and ceiling to dodge obstacles
+| Slug | Title | Mechanic |
+|------|-------|----------|
+| `orbit-lock` | Orbit Lock | Tap the rotating marker into the lime target zone |
+| `lane-shift` | Lane Shift | Switch lanes to dodge barriers in a perspective runner |
+| `echo-grid` | Echo Grid | Memorise and repeat a growing pad sequence |
+| `gravity-flip` | Gravity Flip | Flip between floor and ceiling to dodge obstacles |
 
-## Project structure
+## API
 
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/scores` | Submit a score `{ gameSlug, deviceId, score }` |
+| `GET` | `/api/leaderboard/:gameSlug` | Per-game top-10 leaderboard |
+| `GET` | `/api/health` | Liveness check |
+
+## Database schema
+
+```sql
+CREATE TABLE scores (
+  id        SERIAL PRIMARY KEY,
+  game_slug TEXT    NOT NULL,
+  device_id TEXT    NOT NULL,
+  score     INTEGER NOT NULL CHECK (score >= 0 AND score <= 9999999),
+  timestamp BIGINT  NOT NULL
+);
+CREATE INDEX idx_scores_slug   ON scores(game_slug);
+CREATE INDEX idx_scores_device ON scores(game_slug, device_id);
 ```
-src/
-  games/         OrbitLock, LaneShift, EchoGrid, GravityFlip
-  components/    Feed, GameCard, GameOver, ScoreHUD, SocialRail, …
-  hooks/         usePersonalBest, useLeaderboard
-  types/         game.ts (shared GameProps interface)
-  utils/         deviceId, haptics
-server/
-  index.ts       Express entry point (port 3001)
-  routes/        scores.ts — POST /api/scores, GET /api/leaderboard/:gameSlug
-  services/      scoreService.ts — in-memory + optional PostgreSQL
-```
+
+Schema is pre-created in the Replit dev database. Replit's publish flow mirrors it to production automatically.
+
+## Environment variables
+
+| Variable | Where set | Description |
+|----------|-----------|-------------|
+| `DATABASE_URL` | Replit (automatic) | PostgreSQL connection string |
+| `PORT` | Replit / start script | HTTP port (dev: 3001, prod: 5000) |
+| `NODE_ENV` | start script | `production` enables static serving |
+| `SESSION_SECRET` | Replit Secrets | Reserved for future auth |
+
+## Deployment
+
+Configured as **autoscale**:
+- **Build**: `npm run build`
+- **Run**: `node dist/server/index.js` (with `NODE_ENV=production` → port 5000)
 
 ## User preferences
 
-- Mobile-first (390×844 primary target), desktop usable
-- Dark neon aesthetic: acid-lime #c8ff00, electric cyan #00e5ff, violet #9b5de5, hot-pink #ff006e
+- Mobile-first (390 × 844 primary), desktop usable via phone-frame layout
+- Neo-brutalist / retro-arcade visual design — cream, orange, blue, lime palette
 - No login screen, no marketing homepage, no game-selection menu
+- Scores and personal bests are guest-only (localStorage device ID)

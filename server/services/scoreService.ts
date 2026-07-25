@@ -1,3 +1,5 @@
+import { Pool } from 'pg'
+
 export interface Score {
   id: number
   gameSlug: string
@@ -17,7 +19,7 @@ export interface ScoreService {
   getLeaderboard(gameSlug: string, limit?: number): Promise<LeaderboardEntry[]>
 }
 
-// --- In-memory implementation ---
+// --- In-memory implementation (fallback when DATABASE_URL is absent) ---
 class InMemoryScoreService implements ScoreService {
   private scores: Score[] = []
   private nextId = 1
@@ -35,14 +37,12 @@ class InMemoryScoreService implements ScoreService {
   }
 
   async getLeaderboard(gameSlug: string, limit = 10): Promise<LeaderboardEntry[]> {
-    // Best score per device
     const bestByDevice = new Map<string, number>()
     for (const s of this.scores) {
       if (s.gameSlug !== gameSlug) continue
       const prev = bestByDevice.get(s.deviceId) ?? 0
       if (s.score > prev) bestByDevice.set(s.deviceId, s.score)
     }
-
     return Array.from(bestByDevice.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
@@ -50,66 +50,67 @@ class InMemoryScoreService implements ScoreService {
   }
 }
 
-// --- PostgreSQL implementation (optional) ---
-async function tryCreatePgService(): Promise<ScoreService | null> {
-  const url = process.env.DATABASE_URL
-  if (!url) return null
+// --- PostgreSQL implementation ---
+class PgScoreService implements ScoreService {
+  constructor(private pool: Pool) {}
 
-  try {
-    const pg = await import('pg')
-    const pool = new pg.default.Pool({ connectionString: url })
-
-    // Create table if needed
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS scores (
-        id SERIAL PRIMARY KEY,
-        game_slug TEXT NOT NULL,
-        device_id TEXT NOT NULL,
-        score INTEGER NOT NULL,
-        timestamp BIGINT NOT NULL
-      )
-    `)
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_scores_slug ON scores(game_slug)`)
-
+  async saveScore(gameSlug: string, deviceId: string, score: number): Promise<Score> {
+    const res = await this.pool.query<{
+      id: number; game_slug: string; device_id: string; score: number; timestamp: string
+    }>(
+      'INSERT INTO scores(game_slug, device_id, score, timestamp) VALUES($1, $2, $3, $4) RETURNING *',
+      [gameSlug, deviceId, score, Date.now()]
+    )
+    const row = res.rows[0]
     return {
-      async saveScore(gameSlug, deviceId, score) {
-        const ts = Date.now()
-        const res = await pool.query(
-          'INSERT INTO scores(game_slug, device_id, score, timestamp) VALUES($1,$2,$3,$4) RETURNING *',
-          [gameSlug, deviceId, score, ts]
-        )
-        const row = res.rows[0]
-        return { id: row.id, gameSlug: row.game_slug, deviceId: row.device_id, score: row.score, timestamp: Number(row.timestamp) }
-      },
-
-      async getLeaderboard(gameSlug, limit = 10) {
-        const res = await pool.query(
-          `SELECT device_id, MAX(score) as best_score
-           FROM scores WHERE game_slug = $1
-           GROUP BY device_id
-           ORDER BY best_score DESC
-           LIMIT $2`,
-          [gameSlug, limit]
-        )
-        return res.rows.map((row, i) => ({
-          rank: i + 1,
-          score: Number(row.best_score),
-          deviceId: row.device_id,
-        }))
-      },
+      id: row.id,
+      gameSlug: row.game_slug,
+      deviceId: row.device_id,
+      score: row.score,
+      timestamp: Number(row.timestamp),
     }
-  } catch (err) {
-    console.warn('[scores] PostgreSQL not available, using in-memory store:', (err as Error).message)
-    return null
+  }
+
+  async getLeaderboard(gameSlug: string, limit = 10): Promise<LeaderboardEntry[]> {
+    const res = await this.pool.query<{ device_id: string; best_score: string }>(
+      `SELECT device_id, MAX(score) AS best_score
+       FROM scores
+       WHERE game_slug = $1
+       GROUP BY device_id
+       ORDER BY best_score DESC
+       LIMIT $2`,
+      [gameSlug, limit]
+    )
+    return res.rows.map((row, i) => ({
+      rank: i + 1,
+      score: Number(row.best_score),
+      deviceId: row.device_id,
+    }))
   }
 }
 
+// --- Service factory (singleton) ---
 let _service: ScoreService | null = null
 
 export async function getScoreService(): Promise<ScoreService> {
   if (_service) return _service
-  const pg = await tryCreatePgService()
-  _service = pg ?? new InMemoryScoreService()
-  console.log(`[scores] Using ${pg ? 'PostgreSQL' : 'in-memory'} score service`)
+
+  const url = process.env.DATABASE_URL
+  if (url) {
+    try {
+      const pool = new Pool({ connectionString: url })
+      // Verify connectivity with a lightweight query
+      await pool.query('SELECT 1')
+      _service = new PgScoreService(pool)
+      console.log('[scores] Using PostgreSQL score service')
+      return _service
+    } catch (err) {
+      console.warn('[scores] PostgreSQL unavailable, falling back to in-memory:', (err as Error).message)
+    }
+  } else {
+    console.warn('[scores] DATABASE_URL not set — using in-memory store (scores will not persist)')
+  }
+
+  _service = new InMemoryScoreService()
   return _service
 }
