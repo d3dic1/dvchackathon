@@ -14,8 +14,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     {PUBLISHABLE_KEY ? (
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
-        afterSignInUrl={window.location.href}
-        afterSignUpUrl={window.location.href}
+        signInFallbackRedirectUrl={window.location.href}
       >
         <App />
       </ClerkProvider>
