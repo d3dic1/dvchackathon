@@ -1,0 +1,68 @@
+Build a mobile-first web app called “Tip Tap Games” using React, TypeScript, Vite, and an Express backend.
+
+The product is a TikTok/Reels-style vertical feed, except every full-screen card is a playable one-thumb mini-game. This must be the actual application—not a landing page or dashboard.
+
+CORE EXPERIENCE
+
+- Open directly into the first playable game.
+- One game fills the entire viewport.
+- Vertical swipe, mouse wheel, and trackpad move exactly one card at a time using smooth scroll snapping.
+- Preload the next game so swiping feels instant.
+- Use IntersectionObserver or an equivalent lifecycle system so only the visible game runs.
+- A game must completely stop timers, animation loops, input handlers, and audio when it leaves the viewport.
+- Shuffle/recycle games so the feed never reaches an obvious end.
+- Optimize primarily for a 390 × 844 phone viewport, but keep desktop usable.
+
+CREATE FOUR PLAYABLE GAMES
+
+1. Orbit Lock
+A marker rotates around a circular track. Tap when it crosses a moving target zone. Successful hits create a combo and increase speed. A miss ends the run.
+
+2. Lane Shift
+The player automatically moves forward through two neon lanes. Each tap switches lanes to avoid incoming barriers. Speed gradually increases. Collision ends the run.
+
+3. Echo Grid
+A short sequence flashes across four glowing pads. The player repeats it by tapping the pads. Add one step after every successful round. A wrong tap ends the run.
+
+4. Gravity Flip
+A character moves automatically through a tunnel. Tap to flip between the floor and ceiling while avoiding obstacles. The run continues until collision.
+
+FEED UI
+
+- Dark, immersive, neon arcade aesthetic.
+- Near-black background with acid-lime, electric cyan, violet, and hot-pink accents.
+- Crisp modern typography, glowing borders, particles, subtle gradients, and satisfying micro-interactions.
+- Do not make it look like a generic SaaS dashboard.
+- Display live score and personal best at the top.
+- Bottom-left: game title and a one-sentence instruction.
+- Right-side social rail: leaderboard, like, share, and sound controls.
+- Show a compact game-over overlay with score, personal best, rank placeholder, and “Play Again.”
+- Never require a tap-to-start screen or tutorial.
+- Respect reduced-motion settings and provide a sound toggle.
+- Add light haptic feedback where supported.
+
+ARCHITECTURE
+
+- Give every game a shared interface for active state, score updates, run completion, reset, and cleanup.
+- Keep each game in its own component/module.
+- Avoid duplicated feed lifecycle code.
+- Generate and retain a guest device ID in localStorage.
+- Save personal bests locally immediately.
+- Create an Express API and database-ready score service with:
+  - POST /api/scores
+  - GET /api/leaderboard/:gameSlug
+- Validate score payloads server-side.
+- If a PostgreSQL database is available, persist scores there using a simple schema. Otherwise keep a clean temporary in-memory implementation behind the same service interface so it can be replaced without changing the games.
+- Use environment variables correctly and include .env.example.
+- Add a concise README with setup and run instructions.
+
+IMPORTANT CONSTRAINTS
+
+- No login screen yet.
+- No marketing homepage.
+- No game-selection library.
+- No long explanations or modal tutorials.
+- No external paid APIs.
+- No placeholder games: all four mechanics must actually work.
+- Prioritize smooth gameplay, correct start/stop cleanup, mobile touch input, and a polished feed.
+- Run the app, resolve TypeScript/build errors, and leave it in a working preview state.
