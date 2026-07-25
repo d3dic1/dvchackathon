@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
 import { playSound } from '../utils/audio'
+import { useTapGesture } from '../hooks/useTapGesture'
 
 interface Barrier { y: number; lane: 0 | 1; passed: boolean }
 
@@ -196,6 +197,7 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
     hapticLight()
     playSound('tap', soundEnabled)
   }, [soundEnabled])
+  const tapGesture = useTapGesture<HTMLCanvasElement>(tap)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -236,7 +238,7 @@ export default function LaneShift({ isActive, onScore, onGameOver, reducedMotion
       role="button"
       tabIndex={0}
       aria-label="Slalom Panic. Tap to carve between lanes and avoid gates."
-      onPointerUp={tap}
+      {...tapGesture}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()

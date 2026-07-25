@@ -25,10 +25,11 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [liked, setLiked] = useState(false)
   const [key, setKey] = useState(0) // reset key for game component
+  const deviceId = useRef(getDeviceId()).current
 
   const { personalBest, updatePersonalBest } = usePersonalBest(game.slug)
-  const { entries, loading, submitScore, refresh } = useLeaderboard(game.slug)
-  const deviceId = useRef(getDeviceId()).current
+  const { entries, playerEntry, totalPlayers, loading, error, submitScore, refresh } =
+    useLeaderboard(game.slug, deviceId)
 
   // When card becomes active, reset game state
   useEffect(() => {
@@ -47,8 +48,8 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     setFinalScore(s)
     setGameOver(true)
     updatePersonalBest(s)
-    submitScore(s, deviceId)
-  }, [updatePersonalBest, submitScore, deviceId])
+    void submitScore(s)
+  }, [updatePersonalBest, submitScore])
 
   const handlePlayAgain = useCallback(() => {
     setScore(0)
@@ -64,10 +65,11 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
 
   const isNewBest = finalScore > 0 && finalScore >= personalBest
 
-  // Find player rank in leaderboard
-  const playerRank = entries.find(e => e.deviceId === deviceId)?.rank
-
   const GameComponent = game.component
+  const challengeScore = (() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
+  })()
 
   return (
     <article className="game-card" data-game={game.slug}>
@@ -111,7 +113,14 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           liked={liked}
           onLike={() => setLiked(l => !l)}
           accentColor={game.accentColor}
+          gameSlug={game.slug}
+          gameTitle={game.title}
+          score={gameOver ? finalScore : score}
         />
+      )}
+
+      {challengeScore > 0 && !gameOver && !showLeaderboard && (
+        <div className="challenge-target">CHALLENGE · BEAT {challengeScore}</div>
       )}
 
       {/* Game over overlay */}
@@ -122,7 +131,8 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           isNewBest={isNewBest}
           onPlayAgain={handlePlayAgain}
           accentColor={game.accentColor}
-          rank={playerRank}
+          rank={playerEntry?.rank}
+          totalPlayers={totalPlayers}
         />
       )}
 
@@ -135,6 +145,9 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           accentColor={game.accentColor}
           gameTitle={game.title}
           deviceId={deviceId}
+          playerEntry={playerEntry}
+          totalPlayers={totalPlayers}
+          error={error}
         />
       )}
     </article>

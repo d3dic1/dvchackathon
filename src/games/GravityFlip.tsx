@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
 import { playSound } from '../utils/audio'
+import { useTapGesture } from '../hooks/useTapGesture'
 
 interface Obstacle { x: number; side: 'floor' | 'ceiling'; passed: boolean }
 
@@ -186,6 +187,7 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
     hapticLight()
     playSound('tap', soundEnabled)
   }, [soundEnabled])
+  const tapGesture = useTapGesture<HTMLCanvasElement>(tap)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -226,7 +228,7 @@ export default function GravityFlip({ isActive, onScore, onGameOver, reducedMoti
       role="button"
       tabIndex={0}
       aria-label="Skybound. Tap to swap between the floor and ceiling."
-      onPointerUp={tap}
+      {...tapGesture}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()

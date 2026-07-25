@@ -26,3 +26,9 @@ export interface LeaderboardEntry {
   score: number;
   deviceId: string;
 }
+
+export interface LeaderboardData {
+  entries: LeaderboardEntry[];
+  playerEntry: LeaderboardEntry | null;
+  totalPlayers: number;
+}

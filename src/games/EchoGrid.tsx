@@ -124,7 +124,7 @@ export default function EchoGrid({ isActive, onScore, onGameOver, reducedMotion,
             <button
               key={color}
               className={active ? 'is-lit' : ''}
-              onPointerUp={() => handlePad(index)}
+              onClick={() => handlePad(index)}
               style={{ '--pad': color } as React.CSSProperties}
               aria-label={`Echo pad ${PAD_LABELS[index]}`}
             >

@@ -8,7 +8,7 @@ export default function ScoreHUD({ score, personalBest, accentColor }: Props) {
   return (
     <div className="score-hud">
       <div className="score-hud__block">
-        <div className="score-hud__value" style={{ color: accentColor }}>{score}</div>
+        <div key={score} className="score-hud__value" style={{ color: accentColor }}>{score}</div>
         <div className="score-hud__label">Live score</div>
       </div>
       <div className="score-hud__block score-hud__block--best">

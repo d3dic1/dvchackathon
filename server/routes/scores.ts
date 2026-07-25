@@ -4,10 +4,21 @@ import { getScoreService } from '../services/scoreService'
 
 const router = Router()
 
+const SCORE_LIMITS = {
+  'orbit-lock': 250_000,
+  'lane-shift': 100_000,
+  'echo-grid': 250_000,
+  'gravity-flip': 100_000,
+} as const
+
 const PostScoreSchema = z.object({
-  gameSlug: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
+  gameSlug: z.enum(['orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip']),
   deviceId: z.string().min(8).max(128),
   score: z.number().int().min(0).max(9_999_999),
+}).superRefine(({ gameSlug, score }, context) => {
+  if (score > SCORE_LIMITS[gameSlug]) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['score'], message: 'Score exceeds game limit' })
+  }
 })
 
 // POST /api/scores
@@ -36,8 +47,9 @@ router.get('/:gameSlug', async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(String(req.query.limit ?? '10'), 10) || 10, 100)
   try {
     const service = await getScoreService()
-    const entries = await service.getLeaderboard(gameSlug, limit)
-    return res.json(entries)
+    const deviceId = typeof req.query.deviceId === 'string' ? req.query.deviceId.slice(0, 128) : undefined
+    const leaderboard = await service.getLeaderboard(gameSlug, limit, deviceId)
+    return res.json(leaderboard)
   } catch (err) {
     console.error('[GET /api/leaderboard]', err)
     return res.status(500).json({ error: 'Internal server error' })

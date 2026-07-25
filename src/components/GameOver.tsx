@@ -7,9 +7,10 @@ interface Props {
   onPlayAgain: () => void
   accentColor: string
   rank?: number
+  totalPlayers: number
 }
 
-export default function GameOver({ score, personalBest, isNewBest, onPlayAgain, accentColor, rank }: Props) {
+export default function GameOver({ score, personalBest, isNewBest, onPlayAgain, accentColor, rank, totalPlayers }: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -24,7 +25,10 @@ export default function GameOver({ score, personalBest, isNewBest, onPlayAgain, 
         <div className="game-over__score">{score}</div>
         <div className="game-over__stats">
           <Stat label="Your best" value={personalBest} />
-          <Stat label="World rank" value={rank ? `#${rank}` : '—'} />
+          <Stat
+            label={rank && totalPlayers ? `Top ${Math.max(1, Math.ceil(rank / totalPlayers * 100))}%` : 'World rank'}
+            value={rank ? `#${rank}` : 'SYNCING'}
+          />
         </div>
         <button ref={buttonRef} className="game-over__button" onClick={onPlayAgain}>
           PLAY IT AGAIN <span>↗</span>

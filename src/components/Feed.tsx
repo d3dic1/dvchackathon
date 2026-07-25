@@ -24,12 +24,19 @@ function buildQueue(games: GameMeta[], count: number): GameMeta[] {
   return result.slice(0, count)
 }
 
+function prioritizeSharedGame(games: GameMeta[]): GameMeta[] {
+  const target = new URLSearchParams(window.location.search).get('game')
+  if (!target) return games
+  const match = games.find(game => game.slug === target)
+  return match ? [match, ...games.filter(game => game.slug !== target)] : games
+}
+
 const QUEUE_SIZE = 24
 
 export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
-  const [queue, setQueue] = useState(() => buildQueue(games, QUEUE_SIZE))
+  const [queue, setQueue] = useState(() => buildQueue(prioritizeSharedGame(games), QUEUE_SIZE))
 
   useEffect(() => {
     if (activeIndex < queue.length - 6) return

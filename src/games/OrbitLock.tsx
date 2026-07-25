@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { GameProps } from '../types/game'
 import { hapticLight, hapticError } from '../utils/haptics'
 import { playSound } from '../utils/audio'
+import { useTapGesture } from '../hooks/useTapGesture'
 
 const TAU = Math.PI * 2
 const BLUE = '#2a78d1'
@@ -157,6 +158,7 @@ export default function OrbitLock({ isActive, onScore, onGameOver, reducedMotion
       onGameOver(state.score)
     }
   }, [onGameOver, onScore, soundEnabled])
+  const tapGesture = useTapGesture<HTMLCanvasElement>(tap)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -197,7 +199,7 @@ export default function OrbitLock({ isActive, onScore, onGameOver, reducedMotion
       role="button"
       tabIndex={0}
       aria-label="Power Swing. Tap when the marker reaches the red sweet spot."
-      onPointerUp={tap}
+      {...tapGesture}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()

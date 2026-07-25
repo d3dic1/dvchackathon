@@ -7,23 +7,35 @@ interface Props {
   accentColor: string
   gameTitle: string
   deviceId: string
+  playerEntry: LeaderboardEntry | null
+  totalPlayers: number
+  error: string | null
 }
 
-export default function LeaderboardPanel({ entries, loading, onClose, accentColor, gameTitle, deviceId }: Props) {
+export default function LeaderboardPanel({
+  entries, loading, onClose, accentColor, gameTitle, deviceId, playerEntry, totalPlayers, error,
+}: Props) {
+  const playerIsVisible = entries.some(entry => entry.deviceId === deviceId)
+
   return (
     <div className="leaderboard" onClick={onClose}>
       <section className="leaderboard__sheet" onClick={event => event.stopPropagation()}>
         <header>
           <div>
-            <span>LIVE WORLD RANKING</span>
+            <span>LIVE WORLD RANKING · {totalPlayers} PLAYERS</span>
             <h2>{gameTitle}</h2>
           </div>
           <button onClick={onClose} aria-label="Close leaderboard">×</button>
         </header>
         <div className="leaderboard__rule" style={{ background: accentColor }} />
 
-        {loading ? (
+        {loading && entries.length === 0 ? (
           <div className="leaderboard__empty">Pulling scores...</div>
+        ) : error && entries.length === 0 ? (
+          <div className="leaderboard__empty leaderboard__empty--error">
+            <strong>RANKS ARE OFFLINE.</strong>
+            <span>{error}</span>
+          </div>
         ) : entries.length === 0 ? (
           <div className="leaderboard__empty">
             <strong>THE BOARD IS WIDE OPEN.</strong>
@@ -41,6 +53,16 @@ export default function LeaderboardPanel({ entries, loading, onClose, accentColo
                 </div>
               )
             })}
+            {playerEntry && !playerIsVisible && (
+              <>
+                <div className="leaderboard__ellipsis">· · ·</div>
+                <div className="leaderboard__row is-me">
+                  <span className="leaderboard__rank">{String(playerEntry.rank).padStart(2, '0')}</span>
+                  <span className="leaderboard__player">YOU</span>
+                  <strong>{playerEntry.score}</strong>
+                </div>
+              </>
+            )}
           </div>
         )}
       </section>

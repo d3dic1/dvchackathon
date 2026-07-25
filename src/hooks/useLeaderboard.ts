@@ -1,41 +1,58 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LeaderboardEntry } from '../types/game'
+import { LeaderboardData, LeaderboardEntry } from '../types/game'
 
-export function useLeaderboard(gameSlug: string) {
+export function useLeaderboard(gameSlug: string, deviceId: string) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
+  const [playerEntry, setPlayerEntry] = useState<LeaderboardEntry | null>(null)
+  const [totalPlayers, setTotalPlayers] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const fetch = useCallback(async () => {
+  const fetchLeaderboard = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
-      const res = await window.fetch(`/api/leaderboard/${gameSlug}`)
-      if (res.ok) {
-        const data = await res.json()
-        setEntries(data)
-      }
+      const params = new URLSearchParams({ deviceId })
+      const response = await window.fetch(`/api/leaderboard/${gameSlug}?${params}`)
+      if (!response.ok) throw new Error('Leaderboard unavailable')
+      const data = await response.json() as LeaderboardData
+      setEntries(data.entries)
+      setPlayerEntry(data.playerEntry)
+      setTotalPlayers(data.totalPlayers)
     } catch {
-      // silently ignore — offline/unavailable
+      setError('Ranks are offline. Your best is still saved here.')
     } finally {
       setLoading(false)
     }
-  }, [gameSlug])
+  }, [deviceId, gameSlug])
 
   useEffect(() => {
-    fetch()
-  }, [fetch])
+    fetchLeaderboard()
+  }, [fetchLeaderboard])
 
-  const submitScore = useCallback(async (score: number, deviceId: string) => {
+  const submitScore = useCallback(async (score: number) => {
     try {
-      await window.fetch('/api/scores', {
+      const response = await window.fetch('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gameSlug, score, deviceId }),
       })
-      fetch()
+      if (!response.ok) throw new Error('Score rejected')
+      await fetchLeaderboard()
+      return true
     } catch {
-      // silently ignore
+      setError('Score saved locally. World ranks are offline.')
+      return false
     }
-  }, [gameSlug, fetch])
+  }, [deviceId, fetchLeaderboard, gameSlug])
 
-  return { entries, loading, submitScore, refresh: fetch }
+  return {
+    entries,
+    playerEntry,
+    totalPlayers,
+    loading,
+    error,
+    submitScore,
+    refresh: fetchLeaderboard,
+  }
 }

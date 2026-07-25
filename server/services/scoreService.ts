@@ -14,9 +14,15 @@ export interface LeaderboardEntry {
   deviceId: string
 }
 
+export interface LeaderboardData {
+  entries: LeaderboardEntry[]
+  playerEntry: LeaderboardEntry | null
+  totalPlayers: number
+}
+
 export interface ScoreService {
   saveScore(gameSlug: string, deviceId: string, score: number): Promise<Score>
-  getLeaderboard(gameSlug: string, limit?: number): Promise<LeaderboardEntry[]>
+  getLeaderboard(gameSlug: string, limit?: number, deviceId?: string): Promise<LeaderboardData>
 }
 
 // --- In-memory implementation (fallback when DATABASE_URL is absent) ---
@@ -36,17 +42,21 @@ class InMemoryScoreService implements ScoreService {
     return entry
   }
 
-  async getLeaderboard(gameSlug: string, limit = 10): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(gameSlug: string, limit = 10, deviceId?: string): Promise<LeaderboardData> {
     const bestByDevice = new Map<string, number>()
     for (const s of this.scores) {
       if (s.gameSlug !== gameSlug) continue
       const prev = bestByDevice.get(s.deviceId) ?? 0
       if (s.score > prev) bestByDevice.set(s.deviceId, s.score)
     }
-    return Array.from(bestByDevice.entries())
+    const ranked = Array.from(bestByDevice.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
       .map(([deviceId, score], i) => ({ rank: i + 1, score, deviceId }))
+    return {
+      entries: ranked.slice(0, limit),
+      playerEntry: deviceId ? ranked.find(entry => entry.deviceId === deviceId) ?? null : null,
+      totalPlayers: ranked.length,
+    }
   }
 }
 
@@ -71,21 +81,36 @@ class PgScoreService implements ScoreService {
     }
   }
 
-  async getLeaderboard(gameSlug: string, limit = 10): Promise<LeaderboardEntry[]> {
-    const res = await this.pool.query<{ device_id: string; best_score: string }>(
-      `SELECT device_id, MAX(score) AS best_score
-       FROM scores
-       WHERE game_slug = $1
-       GROUP BY device_id
-       ORDER BY best_score DESC
-       LIMIT $2`,
-      [gameSlug, limit]
+  async getLeaderboard(gameSlug: string, limit = 10, deviceId?: string): Promise<LeaderboardData> {
+    const res = await this.pool.query<{
+      device_id: string; best_score: string; rank: string; total_players: string
+    }>(
+      `WITH best AS (
+         SELECT device_id, MAX(score) AS best_score
+         FROM scores
+         WHERE game_slug = $1
+         GROUP BY device_id
+       ), ranked AS (
+         SELECT device_id, best_score,
+           RANK() OVER (ORDER BY best_score DESC) AS rank,
+           COUNT(*) OVER () AS total_players
+         FROM best
+       )
+       SELECT * FROM ranked
+       WHERE rank <= $2 OR device_id = $3
+       ORDER BY rank`,
+      [gameSlug, limit, deviceId ?? '']
     )
-    return res.rows.map((row, i) => ({
-      rank: i + 1,
+    const ranked = res.rows.map(row => ({
+      rank: Number(row.rank),
       score: Number(row.best_score),
       deviceId: row.device_id,
     }))
+    return {
+      entries: ranked.filter(entry => entry.rank <= limit),
+      playerEntry: deviceId ? ranked.find(entry => entry.deviceId === deviceId) ?? null : null,
+      totalPlayers: Number(res.rows[0]?.total_players ?? 0),
+    }
   }
 }
 

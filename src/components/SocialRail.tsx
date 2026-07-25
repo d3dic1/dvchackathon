@@ -5,9 +5,28 @@ interface Props {
   liked: boolean
   onLike: () => void
   accentColor: string
+  gameSlug: string
+  gameTitle: string
+  score: number
 }
 
-export default function SocialRail({ soundEnabled, onSoundToggle, onLeaderboard, liked, onLike, accentColor }: Props) {
+export default function SocialRail({
+  soundEnabled, onSoundToggle, onLeaderboard, liked, onLike, accentColor, gameSlug, gameTitle, score,
+}: Props) {
+  const shareChallenge = async () => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('game', gameSlug)
+    if (score > 0) url.searchParams.set('beat', String(score))
+    else url.searchParams.delete('beat')
+    const data = {
+      title: `${gameTitle} · FLICKCADE`,
+      text: score > 0 ? `I scored ${score} on ${gameTitle}. Beat it.` : `Try ${gameTitle} on FLICKCADE.`,
+      url: url.toString(),
+    }
+    if (navigator.share) await navigator.share(data).catch(() => {})
+    else await navigator.clipboard?.writeText(url.toString())
+  }
+
   return (
     <div className="social-rail">
       <button className="rail-button" onClick={onLeaderboard} aria-label="Leaderboard">
@@ -20,11 +39,7 @@ export default function SocialRail({ soundEnabled, onSoundToggle, onLeaderboard,
       </button>
       <button
         className="rail-button"
-        onClick={async () => {
-          const data = { title: 'FLICKCADE', text: 'Beat my score on FLICKCADE.', url: window.location.href }
-          if (navigator.share) await navigator.share(data).catch(() => {})
-          else await navigator.clipboard?.writeText(window.location.href)
-        }}
+        onClick={shareChallenge}
         aria-label="Share"
       >
         <span className="rail-button__icon"><ShareIcon /></span>
