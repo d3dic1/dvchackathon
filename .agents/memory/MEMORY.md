@@ -1,0 +1,3 @@
+- [Clerk auth wiring](clerk-auth.md) — Clerk v5 on Vite/ESM: static imports only, dual-hook module-level selection, signInFallbackRedirectUrl prop name
+- [Score identity model](score-identity.md) — COALESCE(user_id, device_id) grouping; merge stamps user_id on guest rows; myPlayerId resolves the effective key
+- [Personal best cross-device](personal-best.md) — seed localStorage from playerEntry.score on leaderboard load; no extra endpoint needed
