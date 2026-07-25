@@ -10,8 +10,35 @@ const BLUE = '#123fc5'
 const LIME = '#d7ff2f'
 
 type Phase = 'aiming' | 'flying' | 'success' | 'failed'
+type BlockMaterial = 'wood' | 'glass' | 'armor' | 'bomb'
 
 const towerRows = (round: number) => 4 + Math.min(2, Math.floor((round - 1) / 3))
+
+interface TowerBlock {
+  x: number
+  y: number
+  width: number
+  height: number
+  material: BlockMaterial
+  hp: number
+  maxHp: number
+  falling: boolean
+  velocityX: number
+  velocityY: number
+  rotation: number
+  rotationSpeed: number
+  lastHitAt: number
+}
+
+interface Debris {
+  x: number
+  y: number
+  velocityX: number
+  velocityY: number
+  size: number
+  color: string
+  life: number
+}
 
 interface RubbleState {
   running: boolean
@@ -37,6 +64,10 @@ interface RubbleState {
   bounces: number
   transitionAt: number
   flash: number
+  shake: number
+  blocksDestroyed: number
+  blocks: TowerBlock[]
+  debris: Debris[]
   message: string
 }
 
@@ -64,7 +95,51 @@ const initialState: RubbleState = {
   bounces: 0,
   transitionAt: 0,
   flash: 0,
+  shake: 0,
+  blocksDestroyed: 0,
+  blocks: [],
+  debris: [],
   message: 'PULL + RELEASE',
+}
+
+const materialColor: Record<BlockMaterial, string> = {
+  wood: CREAM,
+  glass: '#78d8ff',
+  armor: BLUE,
+  bomb: ORANGE,
+}
+
+function chooseMaterial(round: number, row: number, column: number): BlockMaterial {
+  if (round >= 5 && (row + column + round) % 5 === 0) return 'armor'
+  if (round >= 3 && (row * 2 + column + round) % 7 === 0) return 'bomb'
+  if ((row * 2 + column + round) % 4 === 0) return 'glass'
+  return 'wood'
+}
+
+function blockBonus(material: BlockMaterial): number {
+  if (material === 'glass') return 35
+  if (material === 'armor') return 55
+  if (material === 'bomb') return 45
+  return 25
+}
+
+function scatterBlock(state: RubbleState, block: TowerBlock, forceX: number, forceY: number) {
+  block.falling = true
+  block.velocityX = forceX
+  block.velocityY = forceY
+  block.rotationSpeed = (Math.random() - .5) * 5
+  const color = materialColor[block.material]
+  for (let index = 0; index < 5; index++) {
+    state.debris.push({
+      x: block.x + (Math.random() - .5) * block.width,
+      y: block.y + (Math.random() - .5) * block.height,
+      velocityX: forceX * (.4 + Math.random() * .45) + (Math.random() - .5) * 100,
+      velocityY: forceY * (.35 + Math.random() * .4) - Math.random() * 80,
+      size: Math.max(3, block.width * (.05 + Math.random() * .08)),
+      color,
+      life: .7 + Math.random() * .65,
+    })
+  }
 }
 
 function prepareRound(state: RubbleState, width: number, height: number) {
@@ -84,6 +159,35 @@ function prepareRound(state: RubbleState, width: number, height: number) {
   state.targetY = ground - (rows + .72) * 32 * scale
   state.targetRadius = Math.max(width * .045, width * (.075 - state.round * .0022))
   state.wind = state.round < 3 ? 0 : (Math.random() - .5) * Math.min(width * .22, state.round * 9)
+  const blockWidth = 44 * scale
+  const blockHeight = 29 * scale
+  const towerBase = ground - 4 * scale
+  const columns = state.round > 4 ? 3 : 2
+  state.blocks = []
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const material = chooseMaterial(state.round, row, column)
+      const maxHp = material === 'armor' ? 2 : 1
+      state.blocks.push({
+        x: state.targetX + (column - (columns - 1) / 2) * (blockWidth + 3 * scale),
+        y: towerBase - (row + .5) * (blockHeight + 3 * scale),
+        width: blockWidth,
+        height: blockHeight,
+        material,
+        hp: maxHp,
+        maxHp,
+        falling: false,
+        velocityX: 0,
+        velocityY: 0,
+        rotation: ((row + column) % 2 ? 1 : -1) * .018,
+        rotationSpeed: 0,
+        lastHitAt: 0,
+      })
+    }
+  }
+  state.debris = []
+  state.blocksDestroyed = 0
+  state.shake = 0
   state.shotTime = 0
   state.bounces = 0
   state.transitionAt = 0
@@ -147,28 +251,54 @@ export default function RubbleRush({
       context.fillRect(x, ground + 22 * scale, 28 * scale, 5 * scale)
     }
 
-    const blockWidth = 44 * scale
-    const blockHeight = 29 * scale
-    const towerBase = ground - 4 * scale
-    const columns = state.round > 4 ? 3 : 2
-    const rows = towerRows(state.round)
-    for (let row = 0; row < rows; row++) {
-      for (let column = 0; column < columns; column++) {
-        const x = state.targetX + (column - (columns - 1) / 2) * (blockWidth + 3 * scale) - blockWidth / 2
-        const y = towerBase - (row + 1) * (blockHeight + 3 * scale)
-        context.save()
-        context.translate(x + blockWidth / 2, y + blockHeight / 2)
-        context.rotate(((row + column) % 2 ? 1 : -1) * .018)
-        context.fillStyle = (row + column) % 3 === 0 ? BLUE : CREAM
-        context.strokeStyle = INK
-        context.lineWidth = 4 * scale
-        context.fillRect(-blockWidth / 2, -blockHeight / 2, blockWidth, blockHeight)
-        context.strokeRect(-blockWidth / 2, -blockHeight / 2, blockWidth, blockHeight)
-        context.fillStyle = (row + column) % 3 === 0 ? CREAM : ORANGE
-        context.fillRect(-blockWidth * .22, -3 * scale, blockWidth * .44, 6 * scale)
-        context.restore()
+    context.save()
+    const shake = reducedMotion ? 0 : state.shake * scale
+    context.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake)
+
+    for (const block of state.blocks) {
+      context.save()
+      context.translate(block.x, block.y)
+      context.rotate(block.rotation)
+      context.fillStyle = materialColor[block.material]
+      context.strokeStyle = INK
+      context.lineWidth = 4 * scale
+      context.fillRect(-block.width / 2, -block.height / 2, block.width, block.height)
+      context.strokeRect(-block.width / 2, -block.height / 2, block.width, block.height)
+      context.fillStyle = block.material === 'armor' ? LIME : block.material === 'glass' ? CREAM : ORANGE
+      context.fillRect(-block.width * .22, -3 * scale, block.width * .44, 6 * scale)
+      if (block.material === 'bomb') {
+        context.fillStyle = INK
+        context.beginPath()
+        context.arc(0, 0, block.height * .24, 0, Math.PI * 2)
+        context.fill()
+        context.strokeStyle = LIME
+        context.lineWidth = 2 * scale
+        context.beginPath()
+        context.moveTo(block.height * .15, -block.height * .17)
+        context.lineTo(block.height * .29, -block.height * .34)
+        context.stroke()
       }
+      if (block.hp < block.maxHp) {
+        context.strokeStyle = CREAM
+        context.lineWidth = 2 * scale
+        context.beginPath()
+        context.moveTo(-block.width * .28, -block.height * .35)
+        context.lineTo(0, 0)
+        context.lineTo(block.width * .24, block.height * .34)
+        context.stroke()
+      }
+      context.restore()
     }
+
+    for (const piece of state.debris) {
+      context.globalAlpha = Math.min(1, piece.life * 2)
+      context.fillStyle = piece.color
+      context.strokeStyle = INK
+      context.lineWidth = 1.5 * scale
+      context.fillRect(piece.x - piece.size / 2, piece.y - piece.size / 2, piece.size, piece.size)
+      context.strokeRect(piece.x - piece.size / 2, piece.y - piece.size / 2, piece.size, piece.size)
+    }
+    context.globalAlpha = 1
 
     context.save()
     context.translate(state.targetX, state.targetY)
@@ -249,12 +379,16 @@ export default function RubbleRush({
     context.arc(0, 0, 6 * scale, 0, Math.PI * 2)
     context.fill()
     context.restore()
+    context.restore()
 
     context.textAlign = 'center'
     context.fillStyle = CREAM
     context.strokeStyle = INK
     context.lineWidth = 7 * scale
-    context.font = `900 ${Math.max(25, height * .039)}px "Archivo Black", sans-serif`
+    const messageSize = state.message.length > 17
+      ? Math.max(18, height * .026)
+      : Math.max(25, height * .039)
+    context.font = `900 ${messageSize}px "Archivo Black", sans-serif`
     context.strokeText(state.message, width / 2, height * .27)
     context.fillText(state.message, width / 2, height * .27)
     context.font = `700 ${Math.max(9, height * .013)}px "DM Mono", monospace`
@@ -268,7 +402,7 @@ export default function RubbleRush({
       context.fillRect(0, 0, width, height)
       context.globalAlpha = 1
     }
-  }, [])
+  }, [reducedMotion])
 
   const loop = useCallback((time: number) => {
     const canvas = canvasRef.current
@@ -279,6 +413,29 @@ export default function RubbleRush({
     const dt = state.lastTime ? Math.min((time - state.lastTime) / 1000, .04) : .016
     state.lastTime = time
     state.flash = Math.max(0, state.flash - dt * 4)
+    state.shake = Math.max(0, state.shake - dt * 24)
+
+    const ground = canvas.height * .8
+    for (const block of state.blocks) {
+      if (!block.falling) continue
+      block.velocityY += canvas.height * .74 * dt
+      block.x += block.velocityX * dt
+      block.y += block.velocityY * dt
+      block.rotation += block.rotationSpeed * dt
+      if (block.y + block.height / 2 >= ground) {
+        block.y = ground - block.height / 2
+        block.velocityY *= -.24
+        block.velocityX *= .72
+        block.rotationSpeed *= .7
+      }
+    }
+    for (const piece of state.debris) {
+      piece.velocityY += canvas.height * .82 * dt
+      piece.x += piece.velocityX * dt
+      piece.y += piece.velocityY * dt
+      piece.life -= dt
+    }
+    state.debris = state.debris.filter(piece => piece.life > 0)
 
     if (state.phase === 'flying') {
       state.shotTime += dt
@@ -288,19 +445,69 @@ export default function RubbleRush({
       state.ballY += state.velocityY * dt
 
       if (Math.hypot(state.ballX - state.targetX, state.ballY - state.targetY) <= state.targetRadius + canvas.width * .05) {
-        const points = 80 + state.round * 20 + Math.max(0, Math.round((4.5 - state.shotTime) * 12))
+        const standingBlocks = state.blocks.filter(block => !block.falling)
+        const collapseBonus = standingBlocks.length * 8
+        const points = 80 + state.round * 20 + collapseBonus + Math.max(0, Math.round((4.5 - state.shotTime) * 12))
+        for (const block of standingBlocks) {
+          const direction = Math.sign(block.x - state.targetX) || (Math.random() > .5 ? 1 : -1)
+          scatterBlock(state, block, direction * (90 + Math.random() * 130), -130 - Math.random() * 130)
+        }
         state.score += points
+        state.blocksDestroyed += standingBlocks.length
         state.round += 1
         state.phase = 'success'
-        state.message = `CORE CRUSHED +${points}`
-        state.transitionAt = time + (reducedMotion ? 260 : 620)
+        state.message = `PERFECT COLLAPSE +${points}`
+        state.transitionAt = time + (reducedMotion ? 300 : 820)
         state.flash = 1
+        state.shake = 18
         onScore(state.score)
         hapticLight()
         playSound(state.round % 5 === 0 ? 'milestone' : 'success', soundEnabled)
       } else {
-        const ground = canvas.height * .8
         const ballRadius = canvas.width * .045
+        for (const block of state.blocks) {
+          if (block.falling || time - block.lastHitAt < 180) continue
+          const closestX = Math.max(block.x - block.width / 2, Math.min(state.ballX, block.x + block.width / 2))
+          const closestY = Math.max(block.y - block.height / 2, Math.min(state.ballY, block.y + block.height / 2))
+          const deltaX = state.ballX - closestX
+          const deltaY = state.ballY - closestY
+          if (deltaX * deltaX + deltaY * deltaY > ballRadius * ballRadius) continue
+          block.lastHitAt = time
+          block.hp -= 1
+          state.shake = block.material === 'armor' ? 11 : 15
+          if (block.hp <= 0) {
+            let bonus = blockBonus(block.material)
+            scatterBlock(state, block, state.velocityX * .34, state.velocityY * .18 - 70)
+            state.blocksDestroyed += 1
+            if (block.material === 'bomb') {
+              for (const nearby of state.blocks) {
+                if (nearby === block || nearby.falling) continue
+                if (Math.hypot(nearby.x - block.x, nearby.y - block.y) > block.width * 2.35) continue
+                nearby.hp = 0
+                const direction = Math.sign(nearby.x - block.x) || (Math.random() > .5 ? 1 : -1)
+                scatterBlock(state, nearby, direction * (140 + Math.random() * 110), -150 - Math.random() * 100)
+                state.blocksDestroyed += 1
+                bonus += blockBonus(nearby.material)
+              }
+              state.flash = 1
+              state.shake = 22
+            }
+            state.score += bonus
+            state.message = block.material === 'bomb'
+              ? `CHAIN BLAST +${bonus}`
+              : `${block.material.toUpperCase()} BREAK +${bonus}`
+            onScore(state.score)
+            playSound('success', soundEnabled)
+          } else {
+            state.message = 'ARMORED! HIT AGAIN'
+            playSound('tap', soundEnabled)
+          }
+          if (Math.abs(deltaX) > Math.abs(deltaY)) state.velocityX *= -.42
+          else state.velocityY *= -.42
+          state.velocityX *= .78
+          state.velocityY *= .78
+          break
+        }
         if (state.ballY + ballRadius >= ground && state.velocityY > 0) {
           state.ballY = ground - ballRadius
           state.velocityY *= -.34
