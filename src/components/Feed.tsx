@@ -80,7 +80,7 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
         <p className="desktop-poster__eyebrow">ONE THUMB / ENDLESS PLAY</p>
         <h1>FLICK<br />CADE</h1>
         <p className="desktop-poster__tagline">PLAY THE SCROLL.</p>
-        <div className="desktop-poster__stamp">04<br /><span>GAMES</span></div>
+        <div className="desktop-poster__stamp">{String(games.length).padStart(2, '0')}<br /><span>GAMES</span></div>
         <p className="desktop-poster__hint">Swipe, score, repeat.<br />No lobby. No loading.</p>
       </aside>
 
@@ -88,7 +88,7 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
         <header className="feed-brand">
           <span className="feed-brand__name">FLICKCADE</span>
           <span className="feed-brand__counter">
-            {String((activeIndex % games.length) + 1).padStart(2, '0')} / 04
+            {String((activeIndex % games.length) + 1).padStart(2, '0')} / {String(games.length).padStart(2, '0')}
           </span>
         </header>
 

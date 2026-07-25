@@ -29,6 +29,10 @@ export default function SocialRail({
 
   return (
     <div className="social-rail">
+      <div className="creator-chip" aria-label="Created by Flickcade">
+        <span>FC</span>
+        <strong>@FLICKCADE</strong>
+      </div>
       <button className="rail-button" onClick={onLeaderboard} aria-label="Leaderboard">
         <span className="rail-button__icon" style={{ background: accentColor }}><TrophyIcon /></span>
         <span>Ranks</span>

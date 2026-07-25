@@ -36,6 +36,11 @@ export default function GameOver({
             value={score === 0 ? 'UNRANKED' : rank ? `#${rank}` : 'SYNCING'}
           />
         </div>
+        {rank && totalPlayers > 0 && (
+          <div className="game-over__percentile">
+            YOU BEAT {Math.max(0, Math.floor((totalPlayers - rank) / totalPlayers * 100))}% OF PLAYERS
+          </div>
+        )}
         {challengeWon && <div className="game-over__challenge">YOU BEAT {challengeScore} BY {score - (challengeScore ?? 0)}</div>}
         <button ref={buttonRef} className="game-over__button" onClick={onPlayAgain}>
           PLAY IT AGAIN <span>↗</span>

@@ -5,7 +5,10 @@ import { createRunToken } from '../runSecurity'
 const router = Router()
 
 const StartRunSchema = z.object({
-  gameSlug: z.enum(['orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip']),
+  gameSlug: z.enum([
+    'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
+    'micro-mayhem', 'cannon-dash', 'rail-blaster',
+  ]),
   deviceId: z.string().min(8).max(128),
 })
 

@@ -5,6 +5,9 @@ import OrbitLock from './games/OrbitLock'
 import LaneShift from './games/LaneShift'
 import EchoGrid from './games/EchoGrid'
 import GravityFlip from './games/GravityFlip'
+import MicroMayhem from './games/MicroMayhem'
+import CannonDash from './games/CannonDash'
+import RailBlaster from './games/RailBlaster'
 
 const GAMES: GameMeta[] = [
   {
@@ -34,6 +37,27 @@ const GAMES: GameMeta[] = [
     instruction: 'Tap to swap sides. Survive the toy course.',
     accentColor: '#8cff69',
     component: GravityFlip,
+  },
+  {
+    slug: 'micro-mayhem',
+    title: 'Micro Mayhem',
+    instruction: 'Obey the command before the fuse pops.',
+    accentColor: '#ffea3d',
+    component: MicroMayhem,
+  },
+  {
+    slug: 'cannon-dash',
+    title: 'Cannon Dash',
+    instruction: 'Tap when the cannon lines up. One miss ends it.',
+    accentColor: '#a98aff',
+    component: CannonDash,
+  },
+  {
+    slug: 'rail-blaster',
+    title: 'Rail Blaster',
+    instruction: 'Blast orange bots. Never shoot green stars.',
+    accentColor: '#ff5b35',
+    component: RailBlaster,
   },
 ]
 

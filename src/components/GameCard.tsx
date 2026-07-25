@@ -40,6 +40,13 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     useLeaderboard(game.slug, deviceId, getToken)
   const { startRun, getRunToken } = useRunSession(game.slug, deviceId, isActive)
 
+  // Seed local personal-best from server so signed-in users see cross-device best immediately
+  useEffect(() => {
+    if (playerEntry && playerEntry.score > 0) {
+      updatePersonalBest(playerEntry.score)
+    }
+  }, [playerEntry, updatePersonalBest])
+
   useEffect(() => {
     if (isActive) {
       setScore(0)
@@ -60,9 +67,17 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
   const handleScore = useCallback((s: number) => {
     setScore(s)
     const thresholds: Record<string, number> = {
-      'orbit-lock': 50, 'lane-shift': 8, 'echo-grid': 100, 'gravity-flip': 8,
+      'orbit-lock': 50,
+      'lane-shift': 8,
+      'echo-grid': 100,
+      'gravity-flip': 8,
+      'micro-mayhem': 250,
+      'cannon-dash': 150,
+      'rail-blaster': 250,
     }
-    const level = Math.floor(s / thresholds[game.slug])
+    const threshold = thresholds[game.slug]
+    if (!threshold) return
+    const level = Math.floor(s / threshold)
     if (level > milestoneLevel.current) {
       milestoneLevel.current = level
       setMilestone(level >= 3 ? 'UNSTOPPABLE!' : level >= 2 ? 'ON FIRE!' : 'HEATING UP!')
@@ -99,7 +114,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
     return params.get('game') === game.slug ? Number(params.get('beat')) || 0 : 0
   })()
 
-  // Show ClaimRankSheet when: Clerk configured, game over, positive score, not signed in, not dismissed
+  // ClaimRankSheet: show only when Clerk is configured, run is over, score > 0, not signed in, not dismissed
   const showClaimSheet = CLERK_ENABLED && gameOver && finalScore > 0 && !isSignedIn && !claimDismissed && !showLeaderboard
 
   return (
@@ -122,7 +137,6 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
           score={gameOver ? finalScore : score}
           personalBest={personalBest}
           accentColor={game.accentColor}
-          rivalScore={rivalEntry?.score}
         />
       )}
 
@@ -147,6 +161,9 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
       {challengeScore > 0 && !gameOver && !showLeaderboard && (
         <div className="challenge-target">CHALLENGE · BEAT {challengeScore}</div>
       )}
+      {rivalEntry && !gameOver && !showLeaderboard && (
+        <div className="rival-target">NEXT RIVAL · SCORE {rivalEntry.score + 1}</div>
+      )}
       {milestone && !gameOver && <div className="milestone-burst">{milestone}</div>}
 
       {gameOver && !showLeaderboard && (
@@ -162,7 +179,7 @@ export default function GameCard({ game, isActive, soundEnabled, onSoundToggle, 
         />
       )}
 
-      {/* Claim-rank sheet slides up over the game-over card for non-signed-in players */}
+      {/* Bottom sheet: offer sign-in only after a worthwhile completed run */}
       {showClaimSheet && (
         <ClaimRankSheet
           score={finalScore}
