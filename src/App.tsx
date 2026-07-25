@@ -8,6 +8,9 @@ import GravityFlip from './games/GravityFlip'
 import MicroMayhem from './games/MicroMayhem'
 import CannonDash from './games/CannonDash'
 import RailBlaster from './games/RailBlaster'
+import TurboServe from './games/TurboServe'
+import ReelTrouble from './games/ReelTrouble'
+import PinDrop from './games/PinDrop'
 
 const GAMES: GameMeta[] = [
   {
@@ -58,6 +61,27 @@ const GAMES: GameMeta[] = [
     instruction: 'Blast orange bots. Never shoot green stars.',
     accentColor: '#ff5b35',
     component: RailBlaster,
+  },
+  {
+    slug: 'turbo-serve',
+    title: 'Turbo Serve',
+    instruction: 'Tap in the green return zone. Every rally accelerates.',
+    accentColor: '#ff5b35',
+    component: TurboServe,
+  },
+  {
+    slug: 'reel-trouble',
+    title: 'Reel Trouble',
+    instruction: 'Hold to reel. Release before the line snaps.',
+    accentColor: '#78d8ff',
+    component: ReelTrouble,
+  },
+  {
+    slug: 'pin-drop',
+    title: 'Pin Drop',
+    instruction: 'Tap to lock direction, then tap again for power.',
+    accentColor: '#a98aff',
+    component: PinDrop,
   },
 ]
 

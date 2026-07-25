@@ -232,6 +232,9 @@ button { font: inherit; }
 .game-card[data-game="micro-mayhem"] { background: #ffdf35; }
 .game-card[data-game="cannon-dash"] { background: #7d5ed7; }
 .game-card[data-game="rail-blaster"] { background: #101d4f; }
+.game-card[data-game="turbo-serve"] { background: #ff9b52; }
+.game-card[data-game="reel-trouble"] { background: #65bdf1; }
+.game-card[data-game="pin-drop"] { background: #a98aff; }
 .game-card[data-game="orbit-lock"]::before {
   background: repeating-conic-gradient(from 12deg at 50% 48%, transparent 0 9deg, var(--orange) 9deg 11deg);
 }
@@ -257,6 +260,16 @@ button { font: inherit; }
 .game-card[data-game="rail-blaster"]::before {
   background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(120,216,255,.28) 8px 9px);
   mix-blend-mode: screen;
+}
+.game-card[data-game="turbo-serve"]::before {
+  background: repeating-linear-gradient(105deg, transparent 0 44px, rgba(255,255,255,.42) 45px 48px);
+}
+.game-card[data-game="reel-trouble"]::before {
+  background: repeating-radial-gradient(ellipse at 50% 70%, transparent 0 30px, rgba(255,255,255,.34) 31px 34px);
+  mix-blend-mode: screen;
+}
+.game-card[data-game="pin-drop"]::before {
+  background: repeating-linear-gradient(90deg, transparent 0 54px, rgba(18,18,18,.3) 55px 58px);
 }
 
 .game-canvas {

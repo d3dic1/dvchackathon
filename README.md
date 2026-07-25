@@ -10,6 +10,12 @@
 | Slalom Panic | Carve between lanes on an increasingly ruthless toy-like ski slope. |
 | Party Pattern | Repeat a fast four-button sequence inspired by living-room party games. |
 | Skybound | Swap between two sides of a cheerful obstacle course before hazards connect. |
+| Micro Mayhem | Obey rapid tap, double, hold, and wait commands. |
+| Cannon Dash | Fire a rotating cannon into shrinking target barrels. |
+| Rail Blaster | Blast toy-bots while sparing decoy stars. |
+| Turbo Serve | Return a table-tennis rally inside a shrinking timing window. |
+| Reel Trouble | Manage fishing-line tension with press-and-release control. |
+| Pin Drop | Lock direction and power in a two-tap bowling run. |
 
 ## Experience
 

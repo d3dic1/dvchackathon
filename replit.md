@@ -1,6 +1,6 @@
 # FLICKCADE
 
-Mobile-first arcade feed - seven playable one-thumb games in a vertical short-form scroll.
+Mobile-first arcade feed - ten playable one-thumb games in a vertical short-form scroll.
 
 ## Development
 
@@ -41,6 +41,9 @@ Express serves the API and built frontend on port 5000.
 | `micro-mayhem` | Micro Mayhem | Obey rapid tap, double, hold, and wait commands |
 | `cannon-dash` | Cannon Dash | Fire a rotating cannon into shrinking target barrels |
 | `rail-blaster` | Rail Blaster | Blast toy-bots while sparing decoy stars |
+| `turbo-serve` | Turbo Serve | Return a table-tennis rally inside a shrinking timing window |
+| `reel-trouble` | Reel Trouble | Manage fishing-line tension with press-and-release control |
+| `pin-drop` | Pin Drop | Lock direction and power in a two-tap bowling run |
 
 ## API
 

@@ -11,6 +11,9 @@ const SCORE_TARGETS: Record<string, number> = {
   'micro-mayhem': 900,
   'cannon-dash': 600,
   'rail-blaster': 900,
+  'turbo-serve': 900,
+  'reel-trouble': 1200,
+  'pin-drop': 1200,
 }
 
 export function getUtcDayKey(date = new Date()): string {

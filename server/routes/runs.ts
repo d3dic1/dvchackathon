@@ -8,6 +8,7 @@ const StartRunSchema = z.object({
   gameSlug: z.enum([
     'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
     'micro-mayhem', 'cannon-dash', 'rail-blaster', 'daily-gauntlet',
+    'turbo-serve', 'reel-trouble', 'pin-drop',
   ]),
   deviceId: z.string().min(8).max(128),
 })

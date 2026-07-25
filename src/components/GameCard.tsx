@@ -100,6 +100,9 @@ export default function GameCard({
       'micro-mayhem': 250,
       'cannon-dash': 150,
       'rail-blaster': 250,
+      'turbo-serve': 300,
+      'reel-trouble': 300,
+      'pin-drop': 300,
     }
     const threshold = thresholds[game.slug]
     if (!threshold) return
