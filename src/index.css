@@ -1367,63 +1367,31 @@ button { font: inherit; }
     overflow: hidden;
     pointer-events: none;
   }
-  .desktop-decor__orbit {
+  .desktop-decor__count {
     position: absolute;
-    left: clamp(-85px, -2vw, -25px);
-    top: clamp(35px, 8vh, 110px);
-    width: clamp(260px, 24vw, 470px);
-    aspect-ratio: 1;
-    border: clamp(7px, .7vw, 13px) solid rgba(18,63,197,.22);
-    border-radius: 50%;
-    background:
-      radial-gradient(circle at center, var(--orange) 0 6%, transparent 6.5% 22%, rgba(18,63,197,.18) 22.5% 24%, transparent 24.5% 43%, rgba(240,74,36,.18) 43.5% 45%, transparent 45.5%),
-      repeating-conic-gradient(from -8deg, rgba(18,63,197,.13) 0 5deg, transparent 5deg 14deg);
-    opacity: .8;
-    transform: rotate(12deg);
+    left: clamp(-28px, 1vw, 20px);
+    top: 50%;
+    color: transparent;
+    -webkit-text-stroke: clamp(4px, .45vw, 8px) rgba(18,63,197,.18);
+    font: 900 clamp(240px, 27vw, 510px)/.72 'Archivo Black', sans-serif;
+    letter-spacing: -.16em;
+    transform: translateY(-51%) rotate(-4deg);
+    opacity: .86;
   }
-  .desktop-decor__orbit::after {
-    content: '';
+  .desktop-decor__label {
     position: absolute;
-    inset: 17%;
-    border: 3px dashed rgba(18,18,18,.2);
-    border-radius: 50%;
-  }
-  .desktop-decor__checker {
-    position: absolute;
-    left: -5vw;
-    bottom: 4vh;
-    width: min(37vw, 650px);
-    height: clamp(85px, 9vw, 150px);
-    background: repeating-conic-gradient(rgba(18,18,18,.2) 0 25%, transparent 0 50%) 0 0 / 42px 42px;
-    transform: rotate(7deg);
-    opacity: .54;
-  }
-  .desktop-decor__speed {
-    position: absolute;
-    left: clamp(30px, 4vw, 82px);
-    top: 49%;
-    width: clamp(145px, 17vw, 320px);
-    height: clamp(9px, .8vw, 15px);
-    background: var(--blue);
-    box-shadow:
-      25px 30px 0 rgba(240,74,36,.72),
-      -18px 60px 0 rgba(215,255,47,.8);
-    transform: rotate(-9deg);
-    opacity: .52;
-  }
-  .desktop-decor__score {
-    position: absolute;
-    left: clamp(40px, 8vw, 165px);
-    bottom: clamp(82px, 17vh, 210px);
+    left: clamp(48px, 8vw, 160px);
+    top: 67%;
     display: none;
-    padding: 11px 15px 9px;
+    padding: 12px 16px 10px;
+    width: max-content;
     background: var(--lime);
     color: var(--ink);
     border: 3px solid var(--ink);
     box-shadow: 6px 6px 0 var(--blue);
-    font: 900 clamp(13px, 1.2vw, 20px)/1 'DM Mono', monospace;
-    transform: rotate(-7deg);
-    opacity: .88;
+    font: 900 clamp(11px, .85vw, 15px)/1.25 'DM Mono', monospace;
+    letter-spacing: -.04em;
+    transform: rotate(-4deg);
   }
   .feed-stage::before {
     content: '';
@@ -1500,7 +1468,7 @@ button { font: inherit; }
 
 @media (min-width: 1500px) {
   .app-shell::after,
-  .desktop-decor__score {
+  .desktop-decor__label {
     display: block;
   }
   .feed-stage {

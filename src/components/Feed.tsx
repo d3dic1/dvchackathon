@@ -193,10 +193,8 @@ export default function Feed({ games, audioSettings, onAudioSettingsChange, redu
   return (
     <div className="feed-stage">
       <div className="desktop-decor" aria-hidden="true">
-        <span className="desktop-decor__orbit" />
-        <span className="desktop-decor__checker" />
-        <span className="desktop-decor__speed" />
-        <span className="desktop-decor__score">01 / 11</span>
+        <span className="desktop-decor__count">11</span>
+        <span className="desktop-decor__label">11 GAMES<br />ONE THUMB. ZERO LOAD.</span>
       </div>
 
       <aside className="desktop-poster">
