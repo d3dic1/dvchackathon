@@ -192,6 +192,13 @@ export default function Feed({ games, audioSettings, onAudioSettingsChange, redu
 
   return (
     <div className="feed-stage">
+      <div className="desktop-decor" aria-hidden="true">
+        <span className="desktop-decor__orbit" />
+        <span className="desktop-decor__checker" />
+        <span className="desktop-decor__speed" />
+        <span className="desktop-decor__score">01 / 11</span>
+      </div>
+
       <aside className="desktop-poster">
         <p className="desktop-poster__eyebrow">ONE THUMB / ENDLESS PLAY</p>
         <h1>FLICK<br />CADE</h1>

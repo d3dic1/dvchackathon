@@ -48,6 +48,7 @@ button { font: inherit; }
 }
 
 .desktop-poster { display: none; }
+.desktop-decor { display: none; }
 
 .phone-frame {
   width: 100%;
@@ -1335,18 +1336,20 @@ button { font: inherit; }
     pointer-events: none;
   }
   .app-shell::after {
-    content: 'PLAY / SCORE / REPEAT';
+    content: 'PLAY\A SCORE\A REPEAT';
     position: absolute;
     z-index: 0;
-    right: -1.5vw;
-    bottom: 3vh;
+    display: none;
+    right: clamp(18px, 2vw, 42px);
+    bottom: clamp(18px, 3vh, 42px);
     color: transparent;
     -webkit-text-stroke: 2px rgba(245,231,198,.34);
-    font: 900 clamp(44px, 5.8vw, 108px)/.8 'Archivo Black', sans-serif;
+    font: 900 clamp(44px, 5vw, 92px)/.76 'Archivo Black', sans-serif;
     letter-spacing: -.07em;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    opacity: .78;
+    white-space: pre;
+    text-align: right;
+    transform: rotate(-2deg);
+    opacity: .72;
     pointer-events: none;
   }
   .feed-stage {
@@ -1355,6 +1358,72 @@ button { font: inherit; }
     justify-content: center;
     gap: clamp(28px, 5vw, 96px);
     padding: 28px clamp(28px, 5vw, 104px);
+  }
+  .desktop-decor {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .desktop-decor__orbit {
+    position: absolute;
+    left: clamp(-85px, -2vw, -25px);
+    top: clamp(35px, 8vh, 110px);
+    width: clamp(260px, 24vw, 470px);
+    aspect-ratio: 1;
+    border: clamp(7px, .7vw, 13px) solid rgba(18,63,197,.22);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, var(--orange) 0 6%, transparent 6.5% 22%, rgba(18,63,197,.18) 22.5% 24%, transparent 24.5% 43%, rgba(240,74,36,.18) 43.5% 45%, transparent 45.5%),
+      repeating-conic-gradient(from -8deg, rgba(18,63,197,.13) 0 5deg, transparent 5deg 14deg);
+    opacity: .8;
+    transform: rotate(12deg);
+  }
+  .desktop-decor__orbit::after {
+    content: '';
+    position: absolute;
+    inset: 17%;
+    border: 3px dashed rgba(18,18,18,.2);
+    border-radius: 50%;
+  }
+  .desktop-decor__checker {
+    position: absolute;
+    left: -5vw;
+    bottom: 4vh;
+    width: min(37vw, 650px);
+    height: clamp(85px, 9vw, 150px);
+    background: repeating-conic-gradient(rgba(18,18,18,.2) 0 25%, transparent 0 50%) 0 0 / 42px 42px;
+    transform: rotate(7deg);
+    opacity: .54;
+  }
+  .desktop-decor__speed {
+    position: absolute;
+    left: clamp(30px, 4vw, 82px);
+    top: 49%;
+    width: clamp(145px, 17vw, 320px);
+    height: clamp(9px, .8vw, 15px);
+    background: var(--blue);
+    box-shadow:
+      25px 30px 0 rgba(240,74,36,.72),
+      -18px 60px 0 rgba(215,255,47,.8);
+    transform: rotate(-9deg);
+    opacity: .52;
+  }
+  .desktop-decor__score {
+    position: absolute;
+    left: clamp(40px, 8vw, 165px);
+    bottom: clamp(82px, 17vh, 210px);
+    display: none;
+    padding: 11px 15px 9px;
+    background: var(--lime);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--blue);
+    font: 900 clamp(13px, 1.2vw, 20px)/1 'DM Mono', monospace;
+    transform: rotate(-7deg);
+    opacity: .88;
   }
   .feed-stage::before {
     content: '';
@@ -1430,6 +1499,10 @@ button { font: inherit; }
 }
 
 @media (min-width: 1500px) {
+  .app-shell::after,
+  .desktop-decor__score {
+    display: block;
+  }
   .feed-stage {
     grid-template-columns: minmax(500px, 680px) minmax(390px, 450px);
     gap: clamp(80px, 6vw, 132px);
