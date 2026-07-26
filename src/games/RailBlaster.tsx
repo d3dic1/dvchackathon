@@ -122,7 +122,7 @@ export default function RailBlaster({ isActive, onScore, onGameOver, reducedMoti
 
     ctx.fillStyle = CREAM
     ctx.textAlign = 'center'
-    const headerY = Math.max(height * .2, width * .42)
+    const headerY = Math.max(height * .22, Math.min(width * .38, height * .32))
     ctx.font = `900 ${Math.max(16, height * .024)}px "Archivo Black", sans-serif`
     ctx.fillText('BLAST BOTS · SPARE STARS', width / 2, headerY)
     ctx.font = `500 ${Math.max(10, height * .014)}px "DM Mono", monospace`

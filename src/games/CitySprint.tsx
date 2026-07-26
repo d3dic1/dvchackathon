@@ -265,7 +265,7 @@ export default function CitySprint({
     context.strokeRect(-playerWidth * .58, -4 * unit, playerWidth * 1.16, 9 * unit)
     context.restore()
 
-    const headerY = Math.max(horizon - 18 * unit, width * .44)
+    const headerY = Math.max(horizon + 8 * unit, height * .18)
     const streakY = headerY + 30 * unit
     context.fillStyle = INK
     context.fillRect(14 * unit, streakY, 132 * unit, 44 * unit)
