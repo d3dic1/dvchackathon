@@ -122,10 +122,11 @@ export default function RailBlaster({ isActive, onScore, onGameOver, reducedMoti
 
     ctx.fillStyle = CREAM
     ctx.textAlign = 'center'
+    const headerY = Math.max(height * .2, width * .42)
     ctx.font = `900 ${Math.max(16, height * .024)}px "Archivo Black", sans-serif`
-    ctx.fillText('BLAST BOTS · SPARE STARS', width / 2, height * .2)
+    ctx.fillText('BLAST BOTS · SPARE STARS', width / 2, headerY)
     ctx.font = `500 ${Math.max(10, height * .014)}px "DM Mono", monospace`
-    ctx.fillText(state.combo > 1 ? `${state.combo} HIT COMBO` : 'ONE BAD SHOT ENDS IT', width / 2, height * .235)
+    ctx.fillText(state.combo > 1 ? `${state.combo} HIT COMBO` : 'ONE BAD SHOT ENDS IT', width / 2, headerY + height * .035)
 
     if (state.flash > 0) {
       ctx.globalAlpha = state.flash * .5

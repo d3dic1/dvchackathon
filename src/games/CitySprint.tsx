@@ -265,26 +265,28 @@ export default function CitySprint({
     context.strokeRect(-playerWidth * .58, -4 * unit, playerWidth * 1.16, 9 * unit)
     context.restore()
 
+    const headerY = Math.max(horizon - 18 * unit, width * .44)
+    const streakY = headerY + 30 * unit
     context.fillStyle = INK
-    context.fillRect(14 * unit, 138 * unit, 132 * unit, 44 * unit)
+    context.fillRect(14 * unit, streakY, 132 * unit, 44 * unit)
     context.fillStyle = LIME
     context.font = `900 ${21 * unit}px "Archivo Black", sans-serif`
     context.textAlign = 'left'
-    context.fillText(`x${state.multiplier}`, 25 * unit, 166 * unit)
+    context.fillText(`x${state.multiplier}`, 25 * unit, streakY + 28 * unit)
     context.fillStyle = CREAM
     context.font = `700 ${8 * unit}px "DM Mono", monospace`
-    context.fillText('TOKEN STREAK', 65 * unit, 163 * unit)
+    context.fillText('TOKEN STREAK', 65 * unit, streakY + 25 * unit)
 
     context.textAlign = 'center'
     context.fillStyle = CREAM
     context.strokeStyle = INK
     context.lineWidth = 6 * unit
     context.font = `900 ${Math.max(20, 30 * unit)}px "Archivo Black", sans-serif`
-    context.strokeText('CITY SPRINT', width / 2, horizon - 18 * unit)
-    context.fillText('CITY SPRINT', width / 2, horizon - 18 * unit)
+    context.strokeText('CITY SPRINT', width / 2, headerY)
+    context.fillText('CITY SPRINT', width / 2, headerY)
     context.fillStyle = INK
     context.font = `700 ${9 * unit}px "DM Mono", monospace`
-    context.fillText(`SPEED ${Math.round(state.speed * 1000)}  ·  NEAR MISSES ${state.nearMisses}`, width / 2, horizon + 2 * unit)
+    context.fillText(`SPEED ${Math.round(state.speed * 1000)}  ·  NEAR MISSES ${state.nearMisses}`, width / 2, headerY + 20 * unit)
 
     if (state.flash > 0) {
       context.globalAlpha = state.flash * .55
