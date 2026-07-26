@@ -969,6 +969,96 @@ button { font: inherit; }
 }
 .gauntlet-ticket__primary:active,
 .gauntlet-ticket__secondary:active { transform: translate(3px, 3px); box-shadow: none; }
+
+.audio-sheet-backdrop {
+  position: absolute;
+  z-index: 96;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(18,18,18,.7);
+  backdrop-filter: blur(4px);
+}
+.audio-sheet {
+  width: 100%;
+  padding: 10px 20px max(22px, env(safe-area-inset-bottom));
+  background: var(--cream);
+  color: var(--ink);
+  border-top: 4px solid var(--ink);
+  box-shadow: 0 -8px 0 var(--lime);
+  animation: sheet-in .22s cubic-bezier(.2,.9,.2,1);
+}
+.audio-sheet__handle {
+  width: 52px;
+  height: 5px;
+  margin: 0 auto 15px;
+  background: var(--ink);
+}
+.audio-sheet__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.audio-sheet__header span {
+  font: 700 8px/1 'DM Mono', monospace;
+  letter-spacing: .12em;
+}
+.audio-sheet__header h2 {
+  margin-top: 4px;
+  color: var(--blue);
+  font: 900 31px/.9 'Archivo Black', sans-serif;
+  letter-spacing: -.06em;
+  text-shadow: 3px 3px 0 var(--orange);
+}
+.audio-sheet__header button {
+  width: 34px;
+  height: 34px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--orange);
+  font: 900 22px/1 'Archivo Black', sans-serif;
+  cursor: pointer;
+}
+.audio-control {
+  display: block;
+  margin-top: 15px;
+}
+.audio-control > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font: 700 11px/1 'DM Mono', monospace;
+}
+.audio-control output { color: var(--blue); }
+.audio-control input {
+  width: 100%;
+  height: 28px;
+  margin-top: 6px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.audio-sheet__mute {
+  width: 100%;
+  margin-top: 17px;
+  padding: 13px;
+  background: var(--orange);
+  color: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  font: 900 13px/1 'Archivo Black', sans-serif;
+  cursor: pointer;
+}
+.audio-sheet__mute.is-muted {
+  background: var(--lime);
+  color: var(--ink);
+}
+.audio-sheet > p {
+  margin-top: 14px;
+  text-align: center;
+  font: 600 8px/1.35 'DM Mono', monospace;
+  text-transform: uppercase;
+}
 .gauntlet-result-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -12,6 +12,14 @@ import TurboServe from './games/TurboServe'
 import ReelTrouble from './games/ReelTrouble'
 import PinDrop from './games/PinDrop'
 import RubbleRush from './games/RubbleRush'
+import {
+  AudioPreferences,
+  loadAudioPreferences,
+  setAudioPreferences,
+  setMusicPaused,
+  startMusic,
+  stopMusic,
+} from './utils/audio'
 
 const GAMES: GameMeta[] = [
   {
@@ -94,7 +102,7 @@ const GAMES: GameMeta[] = [
 ]
 
 export default function App() {
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [audioSettings, setAudioSettings] = useState<AudioPreferences>(loadAudioPreferences)
   const [reducedMotion, setReducedMotion] = useState(false)
 
   useEffect(() => {
@@ -105,12 +113,33 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  useEffect(() => {
+    setAudioPreferences(audioSettings)
+  }, [audioSettings])
+
+  useEffect(() => {
+    const unlockAudio = () => startMusic()
+    window.addEventListener('pointerdown', unlockAudio, { once: true })
+    window.addEventListener('keydown', unlockAudio, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio)
+      window.removeEventListener('keydown', unlockAudio)
+      stopMusic()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleVisibility = () => setMusicPaused(document.hidden)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
   return (
     <main className="app-shell">
       <Feed
         games={GAMES}
-        soundEnabled={soundEnabled}
-        onSoundToggle={() => setSoundEnabled(s => !s)}
+        audioSettings={audioSettings}
+        onAudioSettingsChange={setAudioSettings}
         reducedMotion={reducedMotion}
       />
     </main>

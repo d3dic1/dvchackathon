@@ -12,7 +12,7 @@ import SocialRail from './SocialRail'
 import LeaderboardPanel from './LeaderboardPanel'
 import ClaimRankSheet from './ClaimRankSheet'
 import { shareChallenge } from '../utils/shareChallenge'
-import { playSound } from '../utils/audio'
+import { playSound, setMusicMode } from '../utils/audio'
 import { GauntletHud } from './GauntletHud'
 import { toGauntletPoints } from '../utils/dailyGauntlet'
 
@@ -154,6 +154,11 @@ export default function GameCard({
 
   // ClaimRankSheet: show only when Clerk is configured, run is over, score > 0, not signed in, not dismissed
   const showClaimSheet = !gauntlet && CLERK_ENABLED && gameOver && finalScore > 0 && !isSignedIn && !claimDismissed && !showLeaderboard
+
+  useEffect(() => {
+    if (!isActive) return
+    setMusicMode(gameOver || showLeaderboard || showClaimSheet ? 'soft' : 'play')
+  }, [gameOver, isActive, showClaimSheet, showLeaderboard])
   const gauntletEventPoints = gauntlet ? toGauntletPoints(game.slug, finalScore) : 0
 
   return (

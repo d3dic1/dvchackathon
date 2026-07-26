@@ -39,9 +39,9 @@ export default function SocialRail({
         <span className="rail-button__icon"><ShareIcon /></span>
         <span>Share</span>
       </button>
-      <button className="rail-button" onClick={onSoundToggle} aria-label={soundEnabled ? 'Mute' : 'Unmute'}>
+      <button className="rail-button" onClick={onSoundToggle} aria-label="Open audio settings">
         <span className="rail-button__icon"><SoundIcon muted={!soundEnabled} /></span>
-        <span>{soundEnabled ? 'Sound' : 'Muted'}</span>
+        <span>Audio</span>
       </button>
     </div>
   )

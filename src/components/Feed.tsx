@@ -8,6 +8,8 @@ import { useLeaderboard } from '../hooks/useLeaderboard'
 import { usePersonalBest } from '../hooks/usePersonalBest'
 import { useRunSession } from '../hooks/useRunSession'
 import { getDeviceId } from '../utils/deviceId'
+import { AudioPreferences, setMusicDucked } from '../utils/audio'
+import { AudioSettingsSheet } from './AudioSettingsSheet'
 import {
   DAILY_GAUNTLET_LENGTH,
   DAILY_GAUNTLET_SLUG,
@@ -18,8 +20,8 @@ import {
 
 interface Props {
   games: GameMeta[]
-  soundEnabled: boolean
-  onSoundToggle: () => void
+  audioSettings: AudioPreferences
+  onAudioSettingsChange: (settings: AudioPreferences) => void
   reducedMotion: boolean
 }
 
@@ -47,9 +49,10 @@ function prioritizeSharedGame(games: GameMeta[]): GameMeta[] {
 
 const QUEUE_SIZE = 24
 
-export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion }: Props) {
+export default function Feed({ games, audioSettings, onAudioSettingsChange, reducedMotion }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [showAudioSettings, setShowAudioSettings] = useState(false)
   const [queue, setQueue] = useState(() => buildQueue(prioritizeSharedGame(games), QUEUE_SIZE))
   const dayKey = useMemo(() => getUtcDayKey(), [])
   const dailyGames = useMemo(() => getDailyGauntlet(games, dayKey), [dayKey, games])
@@ -74,10 +77,16 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
     return params.get('gauntlet') === dayKey ? 'intro' : null
   })
   const { getRunToken } = useRunSession(DAILY_GAUNTLET_SLUG, deviceId, gauntletActive)
+  const soundEnabled = !audioSettings.muted && audioSettings.sfxVolume > 0
   const challengeScore = (() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('gauntlet') === dayKey ? Number(params.get('beat')) || 0 : 0
   })()
+
+  useEffect(() => {
+    setMusicDucked(Boolean(showAudioSettings || gauntletOverlay))
+    return () => setMusicDucked(false)
+  }, [gauntletOverlay, showAudioSettings])
   const bankedPoints = gauntletScores.reduce((total, points) => total + points, 0)
 
   useEffect(() => {
@@ -226,7 +235,7 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
                     game={game}
                     isActive={index === activeIndex}
                     soundEnabled={soundEnabled}
-                    onSoundToggle={onSoundToggle}
+                    onSoundToggle={() => setShowAudioSettings(true)}
                     reducedMotion={reducedMotion}
                     position={(index % games.length) + 1}
                     gauntlet={belongsToGauntlet ? {
@@ -267,6 +276,14 @@ export default function Feed({ games, soundEnabled, onSoundToggle, reducedMotion
             onStart={startGauntlet}
             onClose={closeGauntletOverlay}
             onShare={() => void shareGauntlet()}
+          />
+        )}
+
+        {showAudioSettings && (
+          <AudioSettingsSheet
+            settings={audioSettings}
+            onChange={onAudioSettingsChange}
+            onClose={() => setShowAudioSettings(false)}
           />
         )}
       </section>
