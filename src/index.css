@@ -752,6 +752,7 @@ button { font: inherit; }
   box-shadow: 10px 10px 0 var(--orange);
   padding: 36px 24px 22px;
   max-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   position: relative;
   text-align: center;
@@ -768,12 +769,18 @@ button { font: inherit; }
   border: 3px solid var(--ink);
   padding: 7px 14px;
   font: 900 13px/1 'Archivo Black', sans-serif;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .game-over__score {
-  font: 900 clamp(76px, 24vw, 112px)/.9 'Archivo Black', sans-serif;
+  /* Scale so even a 6-digit score fits in the ~268 px card content area */
+  font: 900 clamp(44px, 17vw, 80px)/.9 'Archivo Black', sans-serif;
   color: var(--blue);
   letter-spacing: -.08em;
-  text-shadow: 5px 5px 0 var(--orange);
+  text-shadow: 4px 4px 0 var(--orange);
+  width: 100%;
+  overflow: hidden;
 }
 .game-over__stats {
   display: grid;
