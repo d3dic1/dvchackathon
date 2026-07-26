@@ -15,6 +15,7 @@ const SCORE_TARGETS: Record<string, number> = {
   'reel-trouble': 1200,
   'pin-drop': 1200,
   'rubble-rush': 1200,
+  'city-sprint': 1500,
 }
 
 export function getUtcDayKey(date = new Date()): string {

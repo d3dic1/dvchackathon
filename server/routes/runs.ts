@@ -9,7 +9,7 @@ const StartRunSchema = z.object({
     'orbit-lock', 'lane-shift', 'echo-grid', 'gravity-flip',
     'micro-mayhem', 'cannon-dash', 'rail-blaster', 'daily-gauntlet',
     'turbo-serve', 'reel-trouble', 'pin-drop',
-    'rubble-rush',
+    'rubble-rush', 'city-sprint',
   ]),
   deviceId: z.string().min(8).max(128),
 })

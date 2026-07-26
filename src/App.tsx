@@ -12,6 +12,7 @@ import TurboServe from './games/TurboServe'
 import ReelTrouble from './games/ReelTrouble'
 import PinDrop from './games/PinDrop'
 import RubbleRush from './games/RubbleRush'
+import CitySprint from './games/CitySprint'
 import {
   AudioPreferences,
   loadAudioPreferences,
@@ -98,6 +99,13 @@ const GAMES: GameMeta[] = [
     instruction: 'Pull and release. Crush the core in one shot.',
     accentColor: '#d7ff2f',
     component: RubbleRush,
+  },
+  {
+    slug: 'city-sprint',
+    title: 'City Sprint',
+    instruction: 'Swipe lanes. Jump barriers. Duck signs. Don’t blink.',
+    accentColor: '#78d8ff',
+    component: CitySprint,
   },
 ]
 
